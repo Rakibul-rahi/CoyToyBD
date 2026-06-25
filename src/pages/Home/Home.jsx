@@ -4,20 +4,6 @@ import { useCart } from "../../context/CartContext";
 
 /* ---------------------------------------------------------
    CoyToy — "Fandom Collectibles" cyberpunk storefront
-   Palette
-     bg-void     #06080f   page background
-     bg-panel    #0c1020   card / panel surface
-     bg-panel-2  #0f1426   raised surface (header, inputs)
-     line        #1c2340   hairline borders
-     cyan        #3fe3ff   primary neon (data, focus, info)
-     magenta     #ff3fc7   brand neon (wordmark, CTA)
-     amber       #ffb14e   low-stock signal
-     red         #ff4d6d   out-of-stock signal
-     ink         #eef1fb   primary text
-     mute        #8993b8   secondary text
-   Type
-     display: "Orbitron" — wordmark + section eyebrows only
-     body:    "Inter"     — everything read at length
 --------------------------------------------------------- */
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
@@ -25,75 +11,217 @@ const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
 function useInjectFonts() {
   useEffect(() => {
     if (document.getElementById(FONT_LINK_ID)) return;
+
     const link = document.createElement("link");
     link.id = FONT_LINK_ID;
     link.rel = "stylesheet";
     link.href =
       "https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap";
+
     document.head.appendChild(link);
   }, []);
 }
 
 const KEYFRAMES = `
-@keyframes coytoy-twinkle {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
+.coytoy-root *,
+.coytoy-root *::before,
+.coytoy-root *::after {
+  box-sizing: border-box;
 }
-@keyframes coytoy-drift {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 1000px 600px, -800px 500px; }
-}
-@keyframes coytoy-scan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-@keyframes coytoy-pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(255, 63, 199, 0.45); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 63, 199, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 63, 199, 0); }
-}
-@keyframes coytoy-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes coytoy-flicker-in {
-  0% { opacity: 0; filter: brightness(2.5); }
-  8% { opacity: 1; }
-  10% { opacity: 0.4; }
-  12% { opacity: 1; }
-  20% { opacity: 0.7; }
-  24% { opacity: 1; filter: brightness(1); }
-  100% { opacity: 1; filter: brightness(1); }
-}
+
 .coytoy-root *::selection {
   background: #ff3fc7;
   color: #06080f;
 }
-.coytoy-input::placeholder { color: #5b6390; }
-.coytoy-input:focus, .coytoy-select:focus {
+
+.coytoy-input::placeholder {
+  color: #5b6390;
+}
+
+.coytoy-input:focus,
+.coytoy-select:focus {
   outline: none;
   border-color: #3fe3ff !important;
-  box-shadow: 0 0 0 3px rgba(63, 227, 255, 0.18), 0 0 18px rgba(63, 227, 255, 0.25) !important;
+  box-shadow:
+    0 0 0 3px rgba(63, 227, 255, 0.18),
+    0 0 18px rgba(63, 227, 255, 0.25) !important;
 }
-.coytoy-chip:focus-visible, .coytoy-btn:focus-visible, .coytoy-input:focus-visible, .coytoy-select:focus-visible {
+
+.coytoy-chip:focus-visible,
+.coytoy-btn:focus-visible,
+.coytoy-input:focus-visible,
+.coytoy-select:focus-visible {
   outline: 2px solid #3fe3ff;
   outline-offset: 2px;
 }
-.coytoy-card { animation: coytoy-fade-up 0.5s ease both; }
-.coytoy-card:hover { transform: translateY(-6px); }
-.coytoy-card:hover .coytoy-card-glow { opacity: 1; }
-.coytoy-card:hover .coytoy-scanline { opacity: 1; }
-.coytoy-card:hover .coytoy-img { transform: scale(1.06); filter: saturate(1.15) brightness(1.05); }
-.coytoy-wordmark { animation: coytoy-flicker-in 1.4s ease-out both; }
-@media (prefers-reduced-motion: reduce) {
-  .coytoy-card, .coytoy-wordmark { animation: none !important; }
-  .coytoy-scanline { display: none !important; }
+
+.coytoy-search-wrap {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 200px;
 }
+
+.coytoy-card {
+  animation: coytoy-fade-up 0.5s ease both;
+}
+
+.coytoy-card:hover {
+  transform: translateY(-6px);
+}
+
+.coytoy-card:hover .coytoy-card-glow {
+  opacity: 1;
+}
+
+.coytoy-card:hover .coytoy-scanline {
+  opacity: 1;
+}
+
+.coytoy-card:hover .coytoy-img {
+  transform: scale(1.06);
+  filter: saturate(1.15) brightness(1.05);
+}
+
+.coytoy-wordmark {
+  animation: coytoy-flicker-in 1.4s ease-out both;
+}
+
+@keyframes coytoy-twinkle {
+  0%, 100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes coytoy-drift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 1000px 600px, -800px 500px;
+  }
+}
+
+@keyframes coytoy-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes coytoy-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 63, 199, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 63, 199, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 63, 199, 0);
+  }
+}
+
+@keyframes coytoy-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes coytoy-flicker-in {
+  0% {
+    opacity: 0;
+    filter: brightness(2.5);
+  }
+  8% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0.4;
+  }
+  12% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  24% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coytoy-card,
+  .coytoy-wordmark {
+    animation: none !important;
+  }
+
+  .coytoy-scanline {
+    display: none !important;
+  }
+}
+
 @media (max-width: 720px) {
-  .coytoy-toolbar { flex-direction: column; align-items: stretch !important; }
-  .coytoy-toolbar > * { width: 100% !important; }
-  .coytoy-hero-title { font-size: 38px !important; }
-  .coytoy-grid { justify-content: center !important; }
+  .coytoy-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .coytoy-toolbar > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .coytoy-search-wrap {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .coytoy-hero-title {
+    font-size: 38px !important;
+  }
+
+  .coytoy-grid {
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .coytoy-hero-title {
+    font-size: 28px !important;
+    letter-spacing: 2px !important;
+  }
+
+  .coytoy-grid > div {
+    width: 100% !important;
+    max-width: 320px !important;
+  }
+
+  .coytoy-toolbar {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+
+  .coytoy-toolbar input,
+  .coytoy-toolbar select,
+  .coytoy-toolbar button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }
 `;
 
@@ -123,18 +251,45 @@ export default function Home() {
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
-      const data = await getProducts();
-      setProducts(data);
-      setLoading(false);
+
+      try {
+        const data = await getProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error("Failed to load products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
     };
+
     loadProducts();
   }, []);
 
   const getStockStatus = (quantity) => {
     const qty = Number(quantity);
-    if (qty <= 0) return { text: "Out of Stock", color: "#ff4d6d", glow: "rgba(255,77,109,0.5)" };
-    if (qty <= 5) return { text: "Low Stock", color: "#ffb14e", glow: "rgba(255,177,78,0.5)" };
-    return { text: "In Stock", color: "#3fe3ff", glow: "rgba(63,227,255,0.5)" };
+
+    if (qty <= 0) {
+      return {
+        text: "Out of Stock",
+        color: "#ff4d6d",
+        glow: "rgba(255,77,109,0.5)",
+      };
+    }
+
+    if (qty <= 5) {
+      return {
+        text: "Low Stock",
+        color: "#ffb14e",
+        glow: "rgba(255,177,78,0.5)",
+      };
+    }
+
+    return {
+      text: "In Stock",
+      color: "#3fe3ff",
+      glow: "rgba(63,227,255,0.5)",
+    };
   };
 
   const filteredProducts = useMemo(() => {
@@ -150,10 +305,18 @@ export default function Home() {
       const matchesCategory =
         selectedCategory === "All" || productCategory === selectedCategory;
 
-      const matchesMinPrice = minPrice === "" || productPrice >= Number(minPrice);
-      const matchesMaxPrice = maxPrice === "" || productPrice <= Number(maxPrice);
+      const matchesMinPrice =
+        minPrice === "" || productPrice >= Number(minPrice);
 
-      return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
+      const matchesMaxPrice =
+        maxPrice === "" || productPrice <= Number(maxPrice);
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesMinPrice &&
+        matchesMaxPrice
+      );
     });
   }, [products, searchText, selectedCategory, minPrice, maxPrice]);
 
@@ -162,12 +325,16 @@ export default function Home() {
       alert("This product is out of stock");
       return;
     }
+
     addToCart(product);
     alert(`${product.name} added to cart`);
   };
 
   const hasActiveFilters =
-    searchText !== "" || selectedCategory !== "All" || minPrice !== "" || maxPrice !== "";
+    searchText !== "" ||
+    selectedCategory !== "All" ||
+    minPrice !== "" ||
+    maxPrice !== "";
 
   const resetFilters = () => {
     setSearchText("");
@@ -191,7 +358,6 @@ export default function Home() {
     >
       <style>{KEYFRAMES}</style>
 
-      {/* starfield layer */}
       <div
         aria-hidden="true"
         style={{
@@ -208,10 +374,9 @@ export default function Home() {
       />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {/* ---------------- HERO ---------------- */}
         <header
           style={{
-            padding: "64px 32px 48px",
+            padding: "64px clamp(16px, 4vw, 32px) 48px",
             textAlign: "center",
             borderBottom: "1px solid #1c2340",
             position: "relative",
@@ -224,8 +389,8 @@ export default function Home() {
               top: 0,
               left: "50%",
               transform: "translateX(-50%)",
-              width: "640px",
-              height: "280px",
+              width: "min(640px, 90vw)",
+              height: "min(280px, 40vw)",
               background:
                 "radial-gradient(ellipse, rgba(255,63,199,0.18), rgba(63,227,255,0.10) 45%, transparent 75%)",
               filter: "blur(10px)",
@@ -233,14 +398,14 @@ export default function Home() {
             }}
           />
 
-          {/* car glyph */}
           <svg
             width="120"
             height="48"
             viewBox="0 0 200 80"
             aria-hidden="true"
             style={{
-              filter: "drop-shadow(0 0 10px #3fe3ff) drop-shadow(0 0 20px rgba(63,227,255,0.6))",
+              filter:
+                "drop-shadow(0 0 10px #3fe3ff) drop-shadow(0 0 20px rgba(63,227,255,0.6))",
               marginBottom: "10px",
             }}
           >
@@ -251,10 +416,40 @@ export default function Home() {
               strokeWidth="2.5"
               strokeLinejoin="round"
             />
-            <circle cx="48" cy="58" r="9" fill="none" stroke="#3fe3ff" strokeWidth="2.5" />
-            <circle cx="155" cy="58" r="9" fill="none" stroke="#3fe3ff" strokeWidth="2.5" />
-            <line x1="12" y1="50" x2="60" y2="50" stroke="#3fe3ff" strokeWidth="2" opacity="0.6" />
-            <line x1="12" y1="44" x2="45" y2="44" stroke="#3fe3ff" strokeWidth="1.5" opacity="0.4" />
+            <circle
+              cx="48"
+              cy="58"
+              r="9"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="2.5"
+            />
+            <circle
+              cx="155"
+              cy="58"
+              r="9"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="2.5"
+            />
+            <line
+              x1="12"
+              y1="50"
+              x2="60"
+              y2="50"
+              stroke="#3fe3ff"
+              strokeWidth="2"
+              opacity="0.6"
+            />
+            <line
+              x1="12"
+              y1="44"
+              x2="45"
+              y2="44"
+              stroke="#3fe3ff"
+              strokeWidth="1.5"
+              opacity="0.4"
+            />
           </svg>
 
           <h1
@@ -273,6 +468,7 @@ export default function Home() {
           >
             COYTOY
           </h1>
+
           <p
             style={{
               fontFamily: "'Orbitron', sans-serif",
@@ -288,6 +484,7 @@ export default function Home() {
           >
             Fandom Collectibles
           </p>
+
           <p
             style={{
               marginTop: "18px",
@@ -297,12 +494,18 @@ export default function Home() {
               marginInline: "auto",
             }}
           >
-            Cars, dolls, and collectibles from the toy box of the future. Browse the full inventory below.
+            Cars, dolls, and collectibles from the toy box of the future.
+            Browse the full inventory below.
           </p>
         </header>
 
-        {/* ---------------- TOOLBAR ---------------- */}
-        <div style={{ padding: "28px 32px 0", maxWidth: "1240px", marginInline: "auto" }}>
+        <div
+          style={{
+            padding: "28px clamp(16px, 4vw, 32px) 0",
+            maxWidth: "1240px",
+            marginInline: "auto",
+          }}
+        >
           <div
             className="coytoy-toolbar"
             style={{
@@ -317,7 +520,7 @@ export default function Home() {
               backdropFilter: "blur(10px)",
             }}
           >
-            <div style={{ position: "relative", flex: "1 1 220px", minWidth: "200px" }}>
+            <div className="coytoy-search-wrap">
               <span
                 aria-hidden="true"
                 style={{
@@ -331,6 +534,7 @@ export default function Home() {
               >
                 ⌖
               </span>
+
               <input
                 type="text"
                 placeholder="Search toys…"
@@ -347,6 +551,7 @@ export default function Home() {
                   color: "#eef1fb",
                   fontSize: "14px",
                   fontFamily: "inherit",
+                  display: "block",
                 }}
               />
             </div>
@@ -368,7 +573,11 @@ export default function Home() {
               }}
             >
               {categories.map((category) => (
-                <option key={category} value={category} style={{ background: "#0c1020" }}>
+                <option
+                  key={category}
+                  value={category}
+                  style={{ background: "#0c1020" }}
+                >
                   {category}
                 </option>
               ))}
@@ -419,8 +628,11 @@ export default function Home() {
               style={{
                 padding: "12px 18px",
                 borderRadius: "10px",
-                border: "1px solid " + (hasActiveFilters ? "#ff3fc7" : "#1c2340"),
-                background: hasActiveFilters ? "rgba(255,63,199,0.08)" : "transparent",
+                border:
+                  "1px solid " + (hasActiveFilters ? "#ff3fc7" : "#1c2340"),
+                background: hasActiveFilters
+                  ? "rgba(255,63,199,0.08)"
+                  : "transparent",
                 color: hasActiveFilters ? "#ff3fc7" : "#5b6390",
                 fontSize: "14px",
                 fontWeight: 600,
@@ -434,10 +646,17 @@ export default function Home() {
             </button>
           </div>
 
-          {/* category chips */}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "16px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+              marginTop: "16px",
+            }}
+          >
             {categories.map((category) => {
               const active = selectedCategory === category;
+
               return (
                 <button
                   key={category}
@@ -453,7 +672,9 @@ export default function Home() {
                     fontWeight: 600,
                     fontFamily: "inherit",
                     cursor: "pointer",
-                    boxShadow: active ? "0 0 14px rgba(63,227,255,0.35)" : "none",
+                    boxShadow: active
+                      ? "0 0 14px rgba(63,227,255,0.35)"
+                      : "none",
                     transition: "all 0.2s ease",
                   }}
                 >
@@ -463,14 +684,29 @@ export default function Home() {
             })}
           </div>
 
-          <p style={{ marginTop: "22px", color: "#5b6390", fontSize: "13px", letterSpacing: "0.3px" }}>
-            <span style={{ color: "#3fe3ff", fontWeight: 700 }}>{filteredProducts.length}</span>{" "}
-            {filteredProducts.length === 1 ? "unit" : "units"} found in inventory
+          <p
+            style={{
+              marginTop: "22px",
+              color: "#5b6390",
+              fontSize: "13px",
+              letterSpacing: "0.3px",
+            }}
+          >
+            <span style={{ color: "#3fe3ff", fontWeight: 700 }}>
+              {filteredProducts.length}
+            </span>{" "}
+            {filteredProducts.length === 1 ? "unit" : "units"} found in
+            inventory
           </p>
         </div>
 
-        {/* ---------------- GRID ---------------- */}
-        <div style={{ padding: "20px 32px 80px", maxWidth: "1240px", marginInline: "auto" }}>
+        <div
+          style={{
+            padding: "20px clamp(16px, 4vw, 32px) 80px",
+            maxWidth: "1240px",
+            marginInline: "auto",
+          }}
+        >
           {loading ? (
             <div
               style={{
@@ -489,10 +725,14 @@ export default function Home() {
                   borderRadius: "50%",
                   border: "3px solid #1c2340",
                   borderTopColor: "#ff3fc7",
-                  animation: "coytoy-pulse-ring 1.4s linear infinite, coytoy-drift 1s linear infinite",
+                  animation:
+                    "coytoy-pulse-ring 1.4s linear infinite, coytoy-drift 1s linear infinite",
                 }}
               />
-              <span style={{ fontSize: "13px", letterSpacing: "1px" }}>Loading inventory…</span>
+
+              <span style={{ fontSize: "13px", letterSpacing: "1px" }}>
+                Loading inventory…
+              </span>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div
@@ -505,12 +745,22 @@ export default function Home() {
               }}
             >
               <div style={{ fontSize: "32px", marginBottom: "10px" }}>🛰️</div>
-              <p style={{ fontSize: "16px", fontWeight: 600, color: "#eef1fb", margin: "0 0 6px" }}>
+
+              <p
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "#eef1fb",
+                  margin: "0 0 6px",
+                }}
+              >
                 No products match these filters
               </p>
+
               <p style={{ fontSize: "14px", margin: "0 0 18px" }}>
                 Try a wider price range or a different category.
               </p>
+
               <button
                 onClick={resetFilters}
                 className="coytoy-btn"
@@ -531,7 +781,12 @@ export default function Home() {
           ) : (
             <div
               className="coytoy-grid"
-              style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}
+              style={{
+                display: "flex",
+                gap: "22px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
             >
               {filteredProducts.map((product, i) => {
                 const stockStatus = getStockStatus(product.quantity);
@@ -543,13 +798,14 @@ export default function Home() {
                     className="coytoy-card"
                     style={{
                       position: "relative",
-                      width: "236px",
+                      width: "min(236px, 100%)",
+                      flex: "1 1 236px",
+                      maxWidth: "236px",
                       borderRadius: "16px",
                       animationDelay: `${Math.min(i * 0.05, 0.4)}s`,
                       transition: "transform 0.3s ease",
                     }}
                   >
-                    {/* glow halo behind card, brightens on hover */}
                     <div
                       className="coytoy-card-glow"
                       aria-hidden="true"
@@ -597,12 +853,13 @@ export default function Home() {
                             height: "100%",
                             objectFit: "cover",
                             display: "block",
-                            transition: "transform 0.4s ease, filter 0.4s ease",
+                            transition:
+                              "transform 0.4s ease, filter 0.4s ease",
                             opacity: outOfStock ? 0.45 : 1,
                             filter: outOfStock ? "grayscale(0.6)" : "none",
                           }}
                         />
-                        {/* scanline sweep on hover */}
+
                         <div
                           className="coytoy-scanline"
                           aria-hidden="true"
@@ -617,14 +874,17 @@ export default function Home() {
                             pointerEvents: "none",
                           }}
                         />
+
                         <div
                           aria-hidden="true"
                           style={{
                             position: "absolute",
                             inset: 0,
-                            background: "linear-gradient(to top, rgba(6,8,15,0.85), transparent 55%)",
+                            background:
+                              "linear-gradient(to top, rgba(6,8,15,0.85), transparent 55%)",
                           }}
                         />
+
                         <span
                           style={{
                             position: "absolute",
@@ -645,7 +905,14 @@ export default function Home() {
                         </span>
                       </div>
 
-                      <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", flex: 1 }}>
+                      <div
+                        style={{
+                          padding: "14px 16px 16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          flex: 1,
+                        }}
+                      >
                         <h3
                           style={{
                             margin: "0 0 6px",
@@ -690,11 +957,13 @@ export default function Home() {
                                 fontWeight: 700,
                                 fontSize: "18px",
                                 color: "#ff3fc7",
-                                textShadow: "0 0 10px rgba(255,63,199,0.5)",
+                                textShadow:
+                                  "0 0 10px rgba(255,63,199,0.5)",
                               }}
                             >
                               {product.price} BDT
                             </span>
+
                             <span style={{ fontSize: "11px", color: "#5b6390" }}>
                               {product.quantity} left
                             </span>
@@ -721,6 +990,7 @@ export default function Home() {
                                 boxShadow: `0 0 6px ${stockStatus.glow}`,
                               }}
                             />
+
                             {stockStatus.text.toUpperCase()}
                           </div>
 
@@ -732,26 +1002,36 @@ export default function Home() {
                               width: "100%",
                               padding: "10px",
                               borderRadius: "9px",
-                              border: "1px solid " + (outOfStock ? "#1c2340" : "#3fe3ff"),
-                              background: outOfStock ? "transparent" : "rgba(63,227,255,0.1)",
+                              border:
+                                "1px solid " +
+                                (outOfStock ? "#1c2340" : "#3fe3ff"),
+                              background: outOfStock
+                                ? "transparent"
+                                : "rgba(63,227,255,0.1)",
                               color: outOfStock ? "#5b6390" : "#3fe3ff",
                               fontSize: "13px",
                               fontWeight: 700,
                               fontFamily: "inherit",
                               cursor: outOfStock ? "not-allowed" : "pointer",
                               transition: "all 0.2s ease",
-                              boxShadow: outOfStock ? "none" : "0 0 0 rgba(63,227,255,0)",
+                              boxShadow: outOfStock
+                                ? "none"
+                                : "0 0 0 rgba(63,227,255,0)",
                             }}
                             onMouseEnter={(e) => {
                               if (!outOfStock) {
-                                e.currentTarget.style.background = "rgba(63,227,255,0.22)";
-                                e.currentTarget.style.boxShadow = "0 0 16px rgba(63,227,255,0.4)";
+                                e.currentTarget.style.background =
+                                  "rgba(63,227,255,0.22)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 0 16px rgba(63,227,255,0.4)";
                               }
                             }}
                             onMouseLeave={(e) => {
                               if (!outOfStock) {
-                                e.currentTarget.style.background = "rgba(63,227,255,0.1)";
-                                e.currentTarget.style.boxShadow = "0 0 0 rgba(63,227,255,0)";
+                                e.currentTarget.style.background =
+                                  "rgba(63,227,255,0.1)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 0 0 rgba(63,227,255,0)";
                               }
                             }}
                           >
