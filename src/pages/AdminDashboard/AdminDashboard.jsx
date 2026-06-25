@@ -29,11 +29,13 @@ const KEYFRAMES = `
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
 @keyframes coytoy-pulse-ring {
   0% { box-shadow: 0 0 0 0 rgba(255, 63, 199, 0.45); }
   70% { box-shadow: 0 0 0 10px rgba(255, 63, 199, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 63, 199, 0); }
 }
+
 @keyframes coytoy-flicker-in {
   0% { opacity: 0; filter: brightness(2.5); }
   8% { opacity: 1; }
@@ -41,17 +43,21 @@ const KEYFRAMES = `
   12% { opacity: 1; }
   100% { opacity: 1; filter: brightness(1); }
 }
+
 .coytoy-admin-root * {
   box-sizing: border-box;
 }
+
 .coytoy-admin-root *::selection {
   background: #ff3fc7;
   color: #06080f;
 }
+
 .coytoy-admin-input::placeholder,
 .coytoy-admin-textarea::placeholder {
   color: #5b6390;
 }
+
 .coytoy-admin-input:focus,
 .coytoy-admin-select:focus,
 .coytoy-admin-textarea:focus {
@@ -59,44 +65,56 @@ const KEYFRAMES = `
   border-color: #3fe3ff !important;
   box-shadow: 0 0 0 3px rgba(63, 227, 255, 0.18), 0 0 18px rgba(63, 227, 255, 0.25) !important;
 }
+
 .coytoy-admin-btn:focus-visible,
 .coytoy-admin-input:focus-visible,
 .coytoy-admin-select:focus-visible,
-.coytoy-admin-textarea:focus-visible {
+.coytoy-admin-textarea:focus-visible,
+.coytoy-admin-stat-card:focus-visible {
   outline: 2px solid #3fe3ff;
   outline-offset: 2px;
 }
+
 .coytoy-admin-panel,
 .coytoy-admin-card {
   animation: coytoy-fade-up 0.45s ease both;
 }
+
 .coytoy-admin-card:hover {
   transform: translateY(-5px);
 }
+
 .coytoy-admin-card:hover .coytoy-admin-card-glow {
   opacity: 1;
 }
+
 .coytoy-admin-title {
   animation: coytoy-flicker-in 1.2s ease-out both;
 }
+
 @media (max-width: 900px) {
   .coytoy-admin-layout {
     grid-template-columns: 1fr !important;
   }
+
   .coytoy-admin-form {
     position: static !important;
   }
 }
+
 @media (max-width: 650px) {
   .coytoy-admin-header {
     padding: 40px 20px 28px !important;
   }
+
   .coytoy-admin-title {
     font-size: 34px !important;
   }
+
   .coytoy-admin-content {
     padding: 22px 18px 60px !important;
   }
+
   .coytoy-admin-stats {
     grid-template-columns: 1fr !important;
   }
@@ -121,6 +139,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const [stockFilter, setStockFilter] = useState("all");
 
   const categories = [
     "Cars",
@@ -166,13 +185,50 @@ export default function AdminDashboard() {
     0
   );
 
-  const lowStockCount = products.filter(
-    (product) => Number(product.quantity) > 0 && Number(product.quantity) <= 5
-  ).length;
+  const lowStockCount = products.filter((product) => {
+    const qty = Number(product.quantity);
+    return qty > 0 && qty <= 5;
+  }).length;
 
   const outOfStockCount = products.filter(
     (product) => Number(product.quantity) <= 0
   ).length;
+
+  const filteredProducts = useMemo(() => {
+    if (stockFilter === "low") {
+      return products.filter((product) => {
+        const qty = Number(product.quantity);
+        return qty > 0 && qty <= 5;
+      });
+    }
+
+    if (stockFilter === "out") {
+      return products.filter((product) => Number(product.quantity) <= 0);
+    }
+
+    return products;
+  }, [products, stockFilter]);
+
+  const productListTitle =
+    stockFilter === "low"
+      ? "Low Stock Products"
+      : stockFilter === "out"
+      ? "Out of Stock Products"
+      : "All Products";
+
+  const emptyListTitle =
+    stockFilter === "low"
+      ? "No low stock products"
+      : stockFilter === "out"
+      ? "No out of stock products"
+      : "No products added yet";
+
+  const emptyListMessage =
+    stockFilter === "low"
+      ? "Products with quantity between 1 and 5 will appear here."
+      : stockFilter === "out"
+      ? "Products with quantity 0 or below will appear here."
+      : "Add your first CoyToy product from the form.";
 
   const formTitle = editingId ? "Edit Product" : "Add New Product";
 
@@ -445,13 +501,36 @@ export default function AdminDashboard() {
               marginBottom: "24px",
             }}
           >
-            <StatCard title="Products" value={totalProducts} color="#3fe3ff" />
-            <StatCard title="Total Stock" value={totalStock} color="#ff3fc7" />
-            <StatCard title="Low Stock" value={lowStockCount} color="#ffb14e" />
+            <StatCard
+              title="Products"
+              value={totalProducts}
+              color="#3fe3ff"
+              active={stockFilter === "all"}
+              onClick={() => setStockFilter("all")}
+            />
+
+            <StatCard
+              title="Total Stock"
+              value={totalStock}
+              color="#ff3fc7"
+              active={stockFilter === "all"}
+              onClick={() => setStockFilter("all")}
+            />
+
+            <StatCard
+              title="Low Stock"
+              value={lowStockCount}
+              color="#ffb14e"
+              active={stockFilter === "low"}
+              onClick={() => setStockFilter("low")}
+            />
+
             <StatCard
               title="Out of Stock"
               value={outOfStockCount}
               color="#ff4d6d"
+              active={stockFilter === "out"}
+              onClick={() => setStockFilter("out")}
             />
           </section>
 
@@ -810,7 +889,7 @@ export default function AdminDashboard() {
                       margin: 0,
                     }}
                   >
-                    All Products
+                    {productListTitle}
                   </h2>
 
                   <p
@@ -820,9 +899,30 @@ export default function AdminDashboard() {
                       margin: "6px 0 0",
                     }}
                   >
-                    {products.length} products in inventory
+                    {filteredProducts.length} products shown
                   </p>
                 </div>
+
+                {stockFilter !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setStockFilter("all")}
+                    className="coytoy-admin-btn"
+                    style={{
+                      padding: "9px 13px",
+                      borderRadius: "10px",
+                      border: "1px solid #3fe3ff",
+                      background: "rgba(63,227,255,0.1)",
+                      color: "#3fe3ff",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Clear Filter
+                  </button>
+                )}
               </div>
 
               {pageLoading ? (
@@ -847,7 +947,7 @@ export default function AdminDashboard() {
 
                   Loading products...
                 </div>
-              ) : products.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <div
                   style={{
                     textAlign: "center",
@@ -862,11 +962,11 @@ export default function AdminDashboard() {
                   </div>
 
                   <h3 style={{ color: "#eef1fb", margin: "0 0 6px" }}>
-                    No products added yet
+                    {emptyListTitle}
                   </h3>
 
                   <p style={{ margin: 0, fontSize: "14px" }}>
-                    Add your first CoyToy product from the form.
+                    {emptyListMessage}
                   </p>
                 </div>
               ) : (
@@ -877,7 +977,7 @@ export default function AdminDashboard() {
                     gap: "18px",
                   }}
                 >
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const qty = Number(product.quantity);
                     const outOfStock = qty <= 0;
                     const lowStock = qty > 0 && qty <= 5;
@@ -1204,15 +1304,34 @@ function FormGroup({ label, children }) {
   );
 }
 
-function StatCard({ title, value, color }) {
+function StatCard({ title, value, color, active = false, onClick }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      className="coytoy-admin-stat-card"
       style={{
-        background: "rgba(15,20,38,0.72)",
-        border: "1px solid #1c2340",
+        textAlign: "left",
+        background: active
+          ? `linear-gradient(135deg, ${color}22, rgba(15,20,38,0.82))`
+          : "rgba(15,20,38,0.72)",
+        border: active ? `1px solid ${color}` : "1px solid #1c2340",
         borderRadius: "16px",
         padding: "17px",
-        boxShadow: `0 0 22px ${color}22`,
+        boxShadow: active
+          ? `0 0 26px ${color}44`
+          : `0 0 22px ${color}22`,
+        cursor: "pointer",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.borderColor = color;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.borderColor = active ? color : "#1c2340";
       }}
     >
       <p
@@ -1239,6 +1358,21 @@ function StatCard({ title, value, color }) {
       >
         {value}
       </h3>
-    </div>
+
+      {active && (
+        <p
+          style={{
+            margin: "8px 0 0",
+            color,
+            fontSize: "11px",
+            fontWeight: 800,
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
+          }}
+        >
+          Active Filter
+        </p>
+      )}
+    </button>
   );
 }

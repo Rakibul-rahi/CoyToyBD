@@ -201,19 +201,24 @@ export default function Cart() {
     return total + Number(item.quantityInCart || 0);
   }, 0);
 
-  const isBuyerInfoComplete =
-    buyerInfo.name.trim() &&
-    buyerInfo.phone.trim() &&
-    buyerInfo.address.trim();
+  const isPhoneValid = /^\d{11}$/.test(buyerInfo.phone);
+
+const isBuyerInfoComplete =
+  buyerInfo.name.trim() &&
+  isPhoneValid &&
+  buyerInfo.address.trim();
 
   const handleBuyerChange = (e) => {
-    const { name, value } = e.target;
+  const { name, value } = e.target;
 
-    setBuyerInfo((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const finalValue =
+    name === "phone" ? value.replace(/\D/g, "").slice(0, 11) : value;
+
+  setBuyerInfo((prev) => ({
+    ...prev,
+    [name]: finalValue,
+  }));
+};
 
   const formatMoney = (amount) => {
     return `${Number(amount || 0).toLocaleString("en-BD")} BDT`;
