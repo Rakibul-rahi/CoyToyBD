@@ -19,6 +19,7 @@ function ensureFontsLoaded() {
   link.rel = "stylesheet";
   link.href =
     "https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap";
+
   document.head.appendChild(link);
 }
 
@@ -35,15 +36,65 @@ function ensureNavStylesInjected() {
 
 @keyframes coytoy-badge-pulse {
   0%, 100% {
-    box-shadow: 0 0 6px rgba(63,227,255,0.55), 0 0 0 0 rgba(63,227,255,0.4);
+    box-shadow: 0 0 6px rgba(255,63,199,0.65), 0 0 0 0 rgba(255,63,199,0.4);
   }
   50% {
-    box-shadow: 0 0 10px rgba(63,227,255,0.85), 0 0 0 4px rgba(63,227,255,0);
+    box-shadow: 0 0 12px rgba(255,63,199,0.95), 0 0 0 5px rgba(255,63,199,0);
   }
 }
 
-.coytoy-brand-link {
+.coytoy-brand-link,
+.coytoy-main-link,
+.coytoy-mobile-cart,
+.coytoy-cart-link {
   text-decoration: none;
+}
+
+.coytoy-nav-row {
+  position: relative;
+}
+
+.coytoy-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.coytoy-brand-logo {
+  filter: drop-shadow(0 0 6px #3fe3ff)
+          drop-shadow(0 0 10px rgba(63,227,255,0.5));
+}
+
+.coytoy-brand-text {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: 1.5px;
+  color: #ff3fc7;
+  text-shadow:
+    0 0 8px rgba(255,63,199,0.7),
+    0 0 18px rgba(255,63,199,0.35);
+}
+
+.coytoy-main-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.coytoy-main-link {
+  color: #8993b8;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.coytoy-main-link.is-active {
+  color: #3fe3ff;
+  border-color: #1c7f94;
+  background: rgba(63,227,255,0.1);
 }
 
 .coytoy-nav-actions {
@@ -62,7 +113,8 @@ function ensureNavStylesInjected() {
 .coytoy-cart-link,
 .coytoy-logout-btn,
 .coytoy-admin-link,
-.coytoy-menu-btn {
+.coytoy-menu-btn,
+.coytoy-mobile-cart {
   white-space: nowrap;
 }
 
@@ -71,9 +123,8 @@ function ensureNavStylesInjected() {
   align-items: center;
   gap: 8px;
   color: #eef1fb;
-  text-decoration: none;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid #1c2340;
@@ -92,13 +143,13 @@ function ensureNavStylesInjected() {
   color: #06080f;
   font-family: 'Orbitron', sans-serif;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   box-shadow: 0 0 8px rgba(255,63,199,0.7);
 }
 
 .coytoy-admin-link {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #8993b8;
   text-decoration: none;
   padding: 8px 12px;
@@ -120,7 +171,7 @@ function ensureNavStylesInjected() {
   color: #ff8fa3;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -131,42 +182,133 @@ function ensureNavStylesInjected() {
 
 .coytoy-menu-btn {
   display: none;
-  margin-left: auto;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #1c2340;
-  background: rgba(63,227,255,0.08);
-  color: #3fe3ff;
-  font-size: 20px;
+  border: none;
+  background: transparent;
+  color: #eef1fb;
+  font-size: 25px;
   cursor: pointer;
+  padding: 8px;
+}
+
+.coytoy-mobile-cart {
+  display: none;
+}
+
+.coytoy-cart-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coytoy-mobile-cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ff3fc7;
+  color: #06080f;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(255,63,199,0.75);
 }
 
 @media (max-width: 760px) {
   .coytoy-nav-row {
-    padding: 12px 16px !important;
-    flex-wrap: wrap;
-    gap: 12px !important;
+    height: 48px;
+    padding: 0 14px !important;
+    display: grid !important;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 0 !important;
   }
 
   .coytoy-menu-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    width: 44px;
+    height: 44px;
+    grid-column: 1;
   }
 
+  .coytoy-brand-link {
+    grid-column: 2;
+    justify-content: center;
+    justify-self: center;
+    gap: 7px;
+  }
+
+  .coytoy-brand-logo {
+    width: 26px;
+    height: 16px;
+  }
+
+  .coytoy-brand-text {
+    font-size: 16px;
+    letter-spacing: 1.2px;
+  }
+
+  .coytoy-mobile-cart {
+    grid-column: 3;
+    justify-self: end;
+    width: 44px;
+    height: 44px;
+    color: #eef1fb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .coytoy-main-links,
   .coytoy-nav-actions {
     display: none;
+    position: absolute;
+    top: 48px;
+    left: 0;
+    right: 0;
     width: 100%;
     margin-left: 0;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
-    padding-top: 10px;
+    padding: 14px;
     border-top: 1px solid #1c2340;
+    background: rgba(7, 9, 26, 0.98);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    z-index: 60;
+  }
+
+  .coytoy-main-links.open {
+    display: flex;
   }
 
   .coytoy-nav-actions.open {
     display: flex;
+    top: calc(48px + 116px);
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .coytoy-main-link,
+  .coytoy-cart-link,
+  .coytoy-admin-link,
+  .coytoy-logout-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .coytoy-cart-link {
+    display: none;
   }
 
   .coytoy-admin-group {
@@ -174,16 +316,77 @@ function ensureNavStylesInjected() {
     flex-direction: column;
     align-items: stretch;
   }
-
-  .coytoy-cart-link,
-  .coytoy-admin-link,
-  .coytoy-logout-btn {
-    width: 100%;
-    justify-content: center;
-  }
 }
 `;
+
   document.head.appendChild(style);
+}
+
+function CartIcon({ size = 23 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M6.2 6.4H20L18.7 14.2H7.5L6.2 6.4Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.2 6.4L5.7 3.8H3.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <circle cx="9" cy="19" r="1.5" fill="currentColor" />
+      <circle cx="17" cy="19" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BrandLogo() {
+  return (
+    <>
+      <svg
+        className="coytoy-brand-logo"
+        width="30"
+        height="18"
+        viewBox="0 0 200 80"
+        aria-hidden="true"
+      >
+        <path
+          d="M10 58 Q40 56 55 40 Q72 22 95 18 L150 18 Q170 18 178 36 L185 36 Q192 36 192 44 L192 54 Q192 58 186 58 L20 58 Q10 58 10 58 Z"
+          fill="none"
+          stroke="#3fe3ff"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="48"
+          cy="58"
+          r="9"
+          fill="none"
+          stroke="#3fe3ff"
+          strokeWidth="4"
+        />
+        <circle
+          cx="155"
+          cy="58"
+          r="9"
+          fill="none"
+          stroke="#3fe3ff"
+          strokeWidth="4"
+        />
+      </svg>
+
+      <span className="coytoy-brand-text">COYTOY</span>
+    </>
+  );
 }
 
 export default function Navbar() {
@@ -204,17 +407,19 @@ export default function Navbar() {
     0
   );
 
-  const handleLogout = async () => {
-  setLoggingOut(true);
+  const closeMenu = () => setMenuOpen(false);
 
-  try {
-    await signOut(auth);
-    setMenuOpen(false);
-    navigate("/", { replace: true });
-  } finally {
-    setLoggingOut(false);
-  }
-};
+  const handleLogout = async () => {
+    setLoggingOut(true);
+
+    try {
+      await signOut(auth);
+      closeMenu();
+      navigate("/", { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <nav
@@ -223,7 +428,7 @@ export default function Navbar() {
         top: 0,
         zIndex: 50,
         width: "100%",
-        background: "rgba(12,16,32,0.78)",
+        background: "rgba(12,16,32,0.88)",
         backdropFilter: "blur(14px)",
         borderBottom: "1px solid #1c2340",
         boxShadow: "0 1px 0 rgba(63,227,255,0.08)",
@@ -241,86 +446,65 @@ export default function Navbar() {
           fontFamily: "'Inter', system-ui, sans-serif",
         }}
       >
-        <Link
-          to="/"
-          className="coytoy-brand-link"
-          onClick={() => setMenuOpen(false)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          <svg
-            width="30"
-            height="18"
-            viewBox="0 0 200 80"
-            aria-hidden="true"
-            style={{
-              filter:
-                "drop-shadow(0 0 6px #3fe3ff) drop-shadow(0 0 10px rgba(63,227,255,0.5))",
-            }}
-          >
-            <path
-              d="M10 58 Q40 56 55 40 Q72 22 95 18 L150 18 Q170 18 178 36 L185 36 Q192 36 192 44 L192 54 Q192 58 186 58 L20 58 Q10 58 10 58 Z"
-              fill="none"
-              stroke="#3fe3ff"
-              strokeWidth="4"
-              strokeLinejoin="round"
-            />
-            <circle
-              cx="48"
-              cy="58"
-              r="9"
-              fill="none"
-              stroke="#3fe3ff"
-              strokeWidth="4"
-            />
-            <circle
-              cx="155"
-              cy="58"
-              r="9"
-              fill="none"
-              stroke="#3fe3ff"
-              strokeWidth="4"
-            />
-          </svg>
-
-          <span
-            style={{
-              fontFamily: "'Orbitron', sans-serif",
-              fontWeight: 800,
-              fontSize: "19px",
-              letterSpacing: "1.5px",
-              color: "#ff3fc7",
-              textShadow:
-                "0 0 8px rgba(255,63,199,0.7), 0 0 18px rgba(255,63,199,0.35)",
-            }}
-          >
-            COYTOY
-          </span>
-        </Link>
-
         <button
           className="coytoy-menu-btn"
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
         >
           {menuOpen ? "×" : "☰"}
         </button>
 
-        <div className={`coytoy-nav-actions ${menuOpen ? "open" : ""}`}>
-          <Link
-            to="/cart"
-            className="coytoy-cart-link"
-            onClick={() => setMenuOpen(false)}
+        <Link to="/" className="coytoy-brand-link" onClick={closeMenu}>
+          <BrandLogo />
+        </Link>
+
+        <Link to="/cart" className="coytoy-mobile-cart" onClick={closeMenu}>
+          <span className="coytoy-cart-icon-wrap">
+            <CartIcon />
+            {cartCount > 0 && (
+              <span
+                className="coytoy-mobile-cart-badge"
+                style={{
+                  animation: "coytoy-badge-pulse 2s ease-in-out infinite",
+                }}
+              >
+                {cartCount}
+              </span>
+            )}
+          </span>
+        </Link>
+
+        <div className={`coytoy-main-links ${menuOpen ? "open" : ""}`}>
+          <NavLink
+            to="/"
+            end
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              "coytoy-main-link" + (isActive ? " is-active" : "")
+            }
           >
-            <span>🛒</span>
+            Home
+          </NavLink>
+
+          <NavLink
+            to="/shop"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              "coytoy-main-link" + (isActive ? " is-active" : "")
+            }
+          >
+            Shop
+          </NavLink>
+        </div>
+
+        <div className={`coytoy-nav-actions ${menuOpen ? "open" : ""}`}>
+          <Link to="/cart" className="coytoy-cart-link" onClick={closeMenu}>
+            <CartIcon size={20} />
             <span>Cart</span>
+
             <span
-              className={
-                "coytoy-cart-badge" + (cartCount > 0 ? " has-items" : "")
-              }
+              className="coytoy-cart-badge"
               style={
                 cartCount > 0
                   ? { animation: "coytoy-badge-pulse 2s ease-in-out infinite" }
@@ -331,40 +515,26 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <div className="coytoy-admin-group">
-            {!isAdmin && (
-              <NavLink
-                to="/admin-login"
-                onClick={() => setMenuOpen(false)}
-                className={({ isActive }) =>
-                  "coytoy-admin-link" + (isActive ? " is-active" : "")
-                }
-              >
-                Admin Login
-              </NavLink>
-            )}
-
-            {isAdmin && (
+          {isAdmin && (
+            <div className="coytoy-admin-group">
               <NavLink
                 to="/admin-dashboard"
-                onClick={() => setMenuOpen(false)}
+                onClick={closeMenu}
                 className={({ isActive }) =>
                   "coytoy-admin-link" + (isActive ? " is-active" : "")
                 }
               >
                 Dashboard
               </NavLink>
-            )}
-          </div>
 
-          {isAdmin && (
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="coytoy-logout-btn"
-            >
-              {loggingOut ? "Signing out…" : "Logout"}
-            </button>
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="coytoy-logout-btn"
+              >
+                {loggingOut ? "Signing out…" : "Logout"}
+              </button>
+            </div>
           )}
         </div>
       </div>
