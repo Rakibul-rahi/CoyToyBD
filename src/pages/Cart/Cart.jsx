@@ -18,56 +18,147 @@ function useInjectFonts() {
   }, []);
 }
 
-const KEYFRAMES = `
-@keyframes coytoy-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+const STYLES = `
+.coytoy-cart-root *,
+.coytoy-cart-root *::before,
+.coytoy-cart-root *::after {
+  box-sizing: border-box;
 }
-@keyframes coytoy-flicker-in {
-  0% { opacity: 0; filter: brightness(2.5); }
-  8% { opacity: 1; }
-  10% { opacity: 0.4; }
-  12% { opacity: 1; }
-  100% { opacity: 1; filter: brightness(1); }
-}
+
 .coytoy-cart-root *::selection {
   background: #ff3fc7;
   color: #06080f;
 }
+
 .coytoy-cart-card {
   animation: coytoy-fade-up 0.45s ease both;
 }
+
 .coytoy-cart-card:hover {
   transform: translateY(-4px);
+  border-color: rgba(63, 227, 255, 0.45) !important;
+  box-shadow: 0 0 24px rgba(63, 227, 255, 0.1);
 }
+
+.coytoy-cart-btn,
+.coytoy-cart-link {
+  transition: all 0.2s ease;
+}
+
 .coytoy-cart-btn:focus-visible,
 .coytoy-cart-link:focus-visible {
   outline: 2px solid #3fe3ff;
   outline-offset: 2px;
 }
-@media (max-width: 850px) {
+
+.coytoy-cart-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.coytoy-cart-qty-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed !important;
+}
+
+@keyframes coytoy-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes coytoy-flicker-in {
+  0% {
+    opacity: 0;
+    filter: brightness(2.5);
+  }
+  8% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0.4;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@media (max-width: 900px) {
   .coytoy-cart-layout {
     grid-template-columns: 1fr !important;
   }
+
   .coytoy-cart-summary {
     position: static !important;
   }
 }
-@media (max-width: 600px) {
+
+@media (max-width: 650px) {
   .coytoy-cart-header {
-    padding: 42px 20px 28px !important;
+    padding: 42px 18px 28px !important;
   }
+
   .coytoy-cart-title {
-    font-size: 38px !important;
+    font-size: 34px !important;
+    letter-spacing: 2px !important;
   }
+
   .coytoy-cart-content {
-    padding: 24px 18px 70px !important;
+    padding: 24px 16px 70px !important;
   }
+
   .coytoy-cart-item {
-    grid-template-columns: 96px 1fr !important;
+    grid-template-columns: 92px 1fr !important;
+    gap: 12px !important;
+    align-items: start !important;
   }
-  .coytoy-cart-remove {
+
+  .coytoy-cart-image {
+    height: 92px !important;
+  }
+
+  .coytoy-cart-actions {
     grid-column: 1 / -1;
+    width: 100%;
+    align-items: stretch !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+
+  .coytoy-cart-subtotal {
+    text-align: left !important;
+  }
+
+  .coytoy-cart-remove-btn {
+    align-self: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .coytoy-cart-item {
+    grid-template-columns: 1fr !important;
+  }
+
+  .coytoy-cart-image {
+    width: 100% !important;
+    height: 170px !important;
+  }
+
+  .coytoy-cart-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .coytoy-cart-remove-btn {
+    width: 100%;
   }
 }
 `;
@@ -86,12 +177,16 @@ export default function Cart() {
   const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER;
 
   const totalPrice = cartItems.reduce((total, item) => {
-    return total + Number(item.price) * item.quantityInCart;
+    return total + Number(item.price || 0) * Number(item.quantityInCart || 0);
   }, 0);
 
   const totalItems = cartItems.reduce((total, item) => {
-    return total + item.quantityInCart;
+    return total + Number(item.quantityInCart || 0);
   }, 0);
+
+  const formatMoney = (amount) => {
+    return `${Number(amount || 0).toLocaleString("en-BD")} BDT`;
+  };
 
   const checkoutOnWhatsApp = () => {
     if (cartItems.length === 0) {
@@ -100,25 +195,41 @@ export default function Cart() {
     }
 
     if (!whatsappNumber) {
-      alert("WhatsApp number is missing. Please set VITE_WHATSAPP_NUMBER in your .env file.");
+      alert(
+        "WhatsApp number is missing. Please set VITE_WHATSAPP_NUMBER in your .env file."
+      );
       return;
     }
 
     const productLines = cartItems
       .map((item, index) => {
-        return `${index + 1}. ${item.name} x${item.quantityInCart} - ${
-          Number(item.price) * item.quantityInCart
-        } BDT`;
-      })
-      .join("\n");
+        const itemSubtotal =
+          Number(item.price || 0) * Number(item.quantityInCart || 0);
 
-    const message = `Hello, I want to order:\n\n${productLines}\n\nTotal: ${totalPrice} BDT`;
+        return `${index + 1}. ${item.name}
+   Category: ${item.category || "N/A"}
+   Quantity: ${item.quantityInCart}
+   Unit Price: ${formatMoney(item.price)}
+   Subtotal: ${formatMoney(itemSubtotal)}`;
+      })
+      .join("\n\n");
+
+    const message = `Hello CoyToy,
+
+I want to place an order.
+
+${productLines}
+
+Total Items: ${totalItems}
+Total Price: ${formatMoney(totalPrice)}
+
+Please confirm availability and delivery details.`;
 
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
       message
     )}`;
 
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -134,7 +245,7 @@ export default function Cart() {
         overflowX: "hidden",
       }}
     >
-      <style>{KEYFRAMES}</style>
+      <style>{STYLES}</style>
 
       <div
         aria-hidden="true"
@@ -144,8 +255,8 @@ export default function Cart() {
           zIndex: 0,
           pointerEvents: "none",
           backgroundImage:
-            "radial-gradient(1.5px 1.5px at 20% 30%, #ffffff 100%, transparent), radial-gradient(1px 1px at 75% 15%, #ffffff 100%, transparent), radial-gradient(1px 1px at 40% 70%, #ffffff 100%, transparent), radial-gradient(2px 2px at 85% 80%, #ffffff 100%, transparent), radial-gradient(1px 1px at 10% 85%, #ffffff 100%, transparent)",
-          opacity: 0.45,
+            "radial-gradient(1.5px 1.5px at 20% 30%, #ffffff 100%, transparent), radial-gradient(1px 1px at 75% 15%, #ffffff 100%, transparent), radial-gradient(1px 1px at 40% 70%, #ffffff 100%, transparent), radial-gradient(2px 2px at 85% 80%, #ffffff 100%, transparent), radial-gradient(1px 1px at 10% 85%, #ffffff 100%, transparent), radial-gradient(1px 1px at 52% 52%, #ffffff 100%, transparent)",
+          opacity: 0.42,
         }}
       />
 
@@ -194,12 +305,13 @@ export default function Cart() {
             style={{
               margin: "16px auto 0",
               color: "#8993b8",
-              maxWidth: "540px",
+              maxWidth: "560px",
               fontSize: "15px",
               lineHeight: 1.6,
             }}
           >
-            Review your selected collectibles before confirming the order through WhatsApp.
+            Review your selected toys and collectibles before confirming the
+            order through WhatsApp.
           </p>
         </header>
 
@@ -212,63 +324,24 @@ export default function Cart() {
           }}
         >
           {cartItems.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "80px 20px",
-                border: "1px dashed #1c2340",
-                borderRadius: "18px",
-                background: "rgba(15,20,38,0.55)",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <div style={{ fontSize: "42px", marginBottom: "12px" }}>🛒</div>
-
-              <h2
-                style={{
-                  fontFamily: "'Orbitron', sans-serif",
-                  color: "#eef1fb",
-                  margin: "0 0 10px",
-                }}
-              >
-                Cart is Empty
-              </h2>
-
-              <p style={{ color: "#8993b8", marginBottom: "24px" }}>
-                Add some toys and collectibles before checkout.
-              </p>
-
-              <Link
-                to="/"
-                className="coytoy-cart-link"
-                style={{
-                  display: "inline-block",
-                  padding: "12px 22px",
-                  borderRadius: "11px",
-                  border: "1px solid #3fe3ff",
-                  background: "rgba(63,227,255,0.1)",
-                  color: "#3fe3ff",
-                  fontWeight: 800,
-                  textDecoration: "none",
-                  boxShadow: "0 0 20px rgba(63,227,255,0.25)",
-                }}
-              >
-                Continue Shopping
-              </Link>
-            </div>
+            <EmptyCart />
           ) : (
             <div
               className="coytoy-cart-layout"
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 340px",
+                gridTemplateColumns: "1fr 350px",
                 gap: "24px",
                 alignItems: "start",
               }}
             >
               <section style={{ display: "grid", gap: "16px" }}>
                 {cartItems.map((item, index) => {
-                  const subtotal = Number(item.price) * item.quantityInCart;
+                  const quantityInCart = Number(item.quantityInCart || 0);
+                  const availableQuantity = Number(item.quantity || 0);
+                  const subtotal = Number(item.price || 0) * quantityInCart;
+                  const reachedStockLimit =
+                    availableQuantity > 0 && quantityInCart >= availableQuantity;
 
                   return (
                     <div
@@ -284,16 +357,18 @@ export default function Cart() {
                         background: "rgba(15,20,38,0.72)",
                         border: "1px solid #1c2340",
                         backdropFilter: "blur(10px)",
-                        transition: "transform 0.25s ease",
+                        transition:
+                          "transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
                         animationDelay: `${Math.min(index * 0.05, 0.35)}s`,
                       }}
                     >
                       <img
                         src={item.imageUrl}
                         alt={item.name}
+                        className="coytoy-cart-image"
                         style={{
                           width: "100%",
-                          height: "110px",
+                          height: "112px",
                           objectFit: "cover",
                           borderRadius: "13px",
                           border: "1px solid #1c2340",
@@ -320,6 +395,7 @@ export default function Cart() {
                             margin: "0 0 8px",
                             fontSize: "17px",
                             color: "#eef1fb",
+                            lineHeight: 1.35,
                           }}
                         >
                           {item.name}
@@ -332,51 +408,81 @@ export default function Cart() {
                             fontSize: "13px",
                           }}
                         >
-                          Unit Price: {item.price} BDT
+                          Unit Price:{" "}
+                          <span style={{ color: "#eef1fb", fontWeight: 700 }}>
+                            {formatMoney(item.price)}
+                          </span>
                         </p>
 
                         <div
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
+                            display: "flex",
+                            flexWrap: "wrap",
                             gap: "10px",
-                            padding: "6px",
-                            borderRadius: "999px",
-                            border: "1px solid #1c2340",
-                            background: "#0c1020",
+                            alignItems: "center",
                           }}
                         >
-                          <button
-                            onClick={() => decreaseQuantity(item.id)}
-                            className="coytoy-cart-btn"
-                            style={quantityButtonStyle}
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "6px",
+                              borderRadius: "999px",
+                              border: "1px solid #1c2340",
+                              background: "#0c1020",
+                            }}
                           >
-                            −
-                          </button>
+                            <button
+                              onClick={() => decreaseQuantity(item.id)}
+                              disabled={quantityInCart <= 1}
+                              className="coytoy-cart-btn coytoy-cart-qty-btn"
+                              style={quantityButtonStyle}
+                              aria-label={`Decrease quantity of ${item.name}`}
+                            >
+                              −
+                            </button>
+
+                            <span
+                              style={{
+                                minWidth: "28px",
+                                textAlign: "center",
+                                fontWeight: 800,
+                                color: "#eef1fb",
+                              }}
+                            >
+                              {quantityInCart}
+                            </span>
+
+                            <button
+                              onClick={() => increaseQuantity(item.id)}
+                              disabled={reachedStockLimit}
+                              className="coytoy-cart-btn coytoy-cart-qty-btn"
+                              style={quantityButtonStyle}
+                              aria-label={`Increase quantity of ${item.name}`}
+                            >
+                              +
+                            </button>
+                          </div>
 
                           <span
                             style={{
-                              minWidth: "28px",
-                              textAlign: "center",
-                              fontWeight: 800,
-                              color: "#eef1fb",
+                              fontSize: "12px",
+                              color: reachedStockLimit ? "#ffb14e" : "#5b6390",
+                              fontWeight: 700,
                             }}
                           >
-                            {item.quantityInCart}
+                            {availableQuantity > 0
+                              ? reachedStockLimit
+                                ? "Stock limit reached"
+                                : `${availableQuantity} available`
+                              : "Stock unavailable"}
                           </span>
-
-                          <button
-                            onClick={() => increaseQuantity(item.id)}
-                            className="coytoy-cart-btn"
-                            style={quantityButtonStyle}
-                          >
-                            +
-                          </button>
                         </div>
                       </div>
 
                       <div
-                        className="coytoy-cart-remove"
+                        className="coytoy-cart-actions"
                         style={{
                           display: "flex",
                           flexDirection: "column",
@@ -384,7 +490,10 @@ export default function Cart() {
                           alignItems: "flex-end",
                         }}
                       >
-                        <div style={{ textAlign: "right" }}>
+                        <div
+                          className="coytoy-cart-subtotal"
+                          style={{ textAlign: "right" }}
+                        >
                           <p
                             style={{
                               margin: "0 0 5px",
@@ -396,21 +505,23 @@ export default function Cart() {
                           >
                             Subtotal
                           </p>
+
                           <strong
                             style={{
                               fontFamily: "'Orbitron', sans-serif",
                               color: "#ff3fc7",
                               fontSize: "18px",
                               textShadow: "0 0 10px rgba(255,63,199,0.45)",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            {subtotal} BDT
+                            {formatMoney(subtotal)}
                           </strong>
                         </div>
 
                         <button
                           onClick={() => removeFromCart(item.id)}
-                          className="coytoy-cart-btn"
+                          className="coytoy-cart-btn coytoy-cart-remove-btn"
                           style={{
                             padding: "9px 13px",
                             borderRadius: "10px",
@@ -468,6 +579,7 @@ export default function Cart() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    gap: "14px",
                     alignItems: "baseline",
                     marginBottom: "20px",
                   }}
@@ -488,10 +600,11 @@ export default function Cart() {
                       fontFamily: "'Orbitron', sans-serif",
                       color: "#ff3fc7",
                       fontSize: "24px",
+                      textAlign: "right",
                       textShadow: "0 0 12px rgba(255,63,199,0.55)",
                     }}
                   >
-                    {totalPrice} BDT
+                    {formatMoney(totalPrice)}
                   </strong>
                 </div>
 
@@ -549,11 +662,79 @@ export default function Cart() {
                 >
                   Continue Shopping
                 </Link>
+
+                <p
+                  style={{
+                    margin: "18px 0 0",
+                    color: "#5b6390",
+                    fontSize: "12.5px",
+                    lineHeight: 1.6,
+                    textAlign: "center",
+                  }}
+                >
+                  You will be redirected to WhatsApp with your order details.
+                </p>
               </aside>
             </div>
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+function EmptyCart() {
+  return (
+    <div
+      style={{
+        textAlign: "center",
+        padding: "80px 20px",
+        border: "1px dashed #1c2340",
+        borderRadius: "18px",
+        background: "rgba(15,20,38,0.55)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div style={{ fontSize: "44px", marginBottom: "12px" }}>🛒</div>
+
+      <h2
+        style={{
+          fontFamily: "'Orbitron', sans-serif",
+          color: "#eef1fb",
+          margin: "0 0 10px",
+        }}
+      >
+        Cart is Empty
+      </h2>
+
+      <p
+        style={{
+          color: "#8993b8",
+          margin: "0 auto 24px",
+          maxWidth: "420px",
+          lineHeight: 1.6,
+        }}
+      >
+        Add some toys and collectibles before checkout.
+      </p>
+
+      <Link
+        to="/"
+        className="coytoy-cart-link"
+        style={{
+          display: "inline-block",
+          padding: "12px 22px",
+          borderRadius: "11px",
+          border: "1px solid #3fe3ff",
+          background: "rgba(63,227,255,0.1)",
+          color: "#3fe3ff",
+          fontWeight: 800,
+          textDecoration: "none",
+          boxShadow: "0 0 20px rgba(63,227,255,0.25)",
+        }}
+      >
+        Continue Shopping
+      </Link>
     </div>
   );
 }
@@ -564,6 +745,7 @@ function SummaryRow({ label, value }) {
       style={{
         display: "flex",
         justifyContent: "space-between",
+        gap: "14px",
         marginBottom: "12px",
         color: "#8993b8",
         fontSize: "14px",
