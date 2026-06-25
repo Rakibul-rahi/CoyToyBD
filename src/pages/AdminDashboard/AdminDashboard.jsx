@@ -8,6 +8,7 @@ import {
 } from "../../services/productService";
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
+const MAX_IMAGES = 4;
 
 function useInjectFonts() {
   useEffect(() => {
@@ -39,6 +40,9 @@ const KEYFRAMES = `
   10% { opacity: 0.4; }
   12% { opacity: 1; }
   100% { opacity: 1; filter: brightness(1); }
+}
+.coytoy-admin-root * {
+  box-sizing: border-box;
 }
 .coytoy-admin-root *::selection {
   background: #ff3fc7;
@@ -79,6 +83,9 @@ const KEYFRAMES = `
   .coytoy-admin-layout {
     grid-template-columns: 1fr !important;
   }
+  .coytoy-admin-form {
+    position: static !important;
+  }
 }
 @media (max-width: 650px) {
   .coytoy-admin-header {
@@ -107,7 +114,9 @@ export default function AdminDashboard() {
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [description, setDescription] = useState("");
-  const [imageFile, setImageFile] = useState(null);
+
+  const [imageFiles, setImageFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -124,116 +133,48 @@ export default function AdminDashboard() {
 
   const loadProducts = async () => {
     setPageLoading(true);
-    const data = await getProducts();
-    setProducts(data);
-    setPageLoading(false);
+
+    try {
+      const data = await getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error("Failed to load products:", error);
+      setProducts([]);
+    } finally {
+      setPageLoading(false);
+    }
   };
 
   useEffect(() => {
     loadProducts();
   }, []);
 
-  const imagePreview = imageFile ? URL.createObjectURL(imageFile) : null;
+  const newImagePreviews = useMemo(() => {
+    return imageFiles.map((file) => URL.createObjectURL(file));
+  }, [imageFiles]);
+
+  useEffect(() => {
+    return () => {
+      newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [newImagePreviews]);
 
   const totalProducts = products.length;
+
   const totalStock = products.reduce(
     (sum, product) => sum + (Number(product.quantity) || 0),
     0
   );
+
   const lowStockCount = products.filter(
     (product) => Number(product.quantity) > 0 && Number(product.quantity) <= 5
   ).length;
+
   const outOfStockCount = products.filter(
     (product) => Number(product.quantity) <= 0
   ).length;
 
   const formTitle = editingId ? "Edit Product" : "Add New Product";
-
-  const resetForm = () => {
-    setEditingId(null);
-    setName("");
-    setCategory("");
-    setPrice("");
-    setQuantity("");
-    setDescription("");
-    setImageFile(null);
-  };
-
-  const showNotice = (message) => {
-    setNotice(message);
-    setTimeout(() => setNotice(""), 2500);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!name || !category || !price || !quantity) {
-      alert("Please fill name, category, price, and quantity");
-      return;
-    }
-
-    if (!editingId && !imageFile) {
-      alert("Please select an image");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      let imageUrl = null;
-
-      if (imageFile) {
-        imageUrl = await uploadImageToCloudinary(imageFile);
-      }
-
-      const productData = {
-        name,
-        category,
-        price: Number(price),
-        quantity: Number(quantity),
-        description,
-      };
-
-      if (imageUrl) {
-        productData.imageUrl = imageUrl;
-      }
-
-      if (editingId) {
-        await updateProduct(editingId, productData);
-        showNotice("Product updated successfully");
-      } else {
-        await addProduct(productData);
-        showNotice("Product added successfully");
-      }
-
-      resetForm();
-      await loadProducts();
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEdit = (product) => {
-    setEditingId(product.id);
-    setName(product.name || "");
-    setCategory(product.category || "");
-    setPrice(product.price || "");
-    setQuantity(product.quantity || "");
-    setDescription(product.description || "");
-    setImageFile(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleDelete = async (id) => {
-    const confirmDelete = confirm("Are you sure you want to delete this product?");
-    if (!confirmDelete) return;
-
-    await deleteProduct(id);
-    showNotice("Product deleted successfully");
-    await loadProducts();
-  };
 
   const inputStyle = {
     width: "100%",
@@ -247,14 +188,142 @@ export default function AdminDashboard() {
     boxSizing: "border-box",
   };
 
-  const labelStyle = {
-    display: "block",
-    color: "#8993b8",
-    fontSize: "12px",
-    fontWeight: 700,
-    letterSpacing: "0.7px",
-    textTransform: "uppercase",
-    marginBottom: "8px",
+  const resetForm = () => {
+    setEditingId(null);
+    setName("");
+    setCategory("");
+    setPrice("");
+    setQuantity("");
+    setDescription("");
+    setImageFiles([]);
+    setExistingImages([]);
+  };
+
+  const showNotice = (message) => {
+    setNotice(message);
+    setTimeout(() => setNotice(""), 2500);
+  };
+
+  const getProductImages = (product) => {
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images.slice(0, MAX_IMAGES);
+    }
+
+    if (product.imageUrl) return [product.imageUrl];
+    if (product.image) return [product.image];
+
+    return [];
+  };
+
+  const getMainProductImage = (product) => {
+    return getProductImages(product)[0] || "";
+  };
+
+  const handleImageChange = (e) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    const allowedFiles = selectedFiles.slice(0, MAX_IMAGES);
+
+    if (selectedFiles.length > MAX_IMAGES) {
+      alert(`You can upload maximum ${MAX_IMAGES} images per product.`);
+    }
+
+    setImageFiles(allowedFiles);
+  };
+
+  const removeSelectedImage = (indexToRemove) => {
+    setImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const removeExistingImage = (indexToRemove) => {
+    setExistingImages((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!name || !category || !price || quantity === "") {
+      alert("Please fill name, category, price, and quantity");
+      return;
+    }
+
+    if (!editingId && imageFiles.length === 0) {
+      alert("Please select at least 1 product image");
+      return;
+    }
+
+    if (editingId && existingImages.length === 0 && imageFiles.length === 0) {
+      alert("Please keep or upload at least 1 product image");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const uploadedImageUrls =
+        imageFiles.length > 0
+          ? await Promise.all(
+              imageFiles.map((file) => uploadImageToCloudinary(file))
+            )
+          : [];
+
+      const finalImages = editingId
+        ? [...existingImages, ...uploadedImageUrls].slice(0, MAX_IMAGES)
+        : uploadedImageUrls.slice(0, MAX_IMAGES);
+
+      const productData = {
+        name: name.trim(),
+        category,
+        price: Number(price),
+        quantity: Number(quantity),
+        description: description.trim(),
+        images: finalImages,
+        imageUrl: finalImages[0] || "",
+      };
+
+      if (editingId) {
+        await updateProduct(editingId, productData);
+        showNotice("Product updated successfully");
+      } else {
+        await addProduct(productData);
+        showNotice("Product added successfully");
+      }
+
+      resetForm();
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Failed to save product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (product) => {
+    setEditingId(product.id);
+    setName(product.name || "");
+    setCategory(product.category || "");
+    setPrice(product.price || "");
+    setQuantity(product.quantity || "");
+    setDescription(product.description || "");
+    setExistingImages(getProductImages(product));
+    setImageFiles([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id) => {
+    const confirmDelete = confirm("Are you sure you want to delete this product?");
+    if (!confirmDelete) return;
+
+    try {
+      await deleteProduct(id);
+      showNotice("Product deleted successfully");
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Failed to delete product");
+    }
   };
 
   return (
@@ -349,12 +418,13 @@ export default function AdminDashboard() {
             style={{
               margin: "16px auto 0",
               color: "#8993b8",
-              maxWidth: "560px",
+              maxWidth: "600px",
               fontSize: "15px",
               lineHeight: 1.6,
             }}
           >
-            Add, update, and manage CoyToy products from one premium control panel.
+            Add, update, and manage CoyToy products with up to 4 images per
+            product.
           </p>
         </header>
 
@@ -378,21 +448,25 @@ export default function AdminDashboard() {
             <StatCard title="Products" value={totalProducts} color="#3fe3ff" />
             <StatCard title="Total Stock" value={totalStock} color="#ff3fc7" />
             <StatCard title="Low Stock" value={lowStockCount} color="#ffb14e" />
-            <StatCard title="Out of Stock" value={outOfStockCount} color="#ff4d6d" />
+            <StatCard
+              title="Out of Stock"
+              value={outOfStockCount}
+              color="#ff4d6d"
+            />
           </section>
 
           <section
             className="coytoy-admin-layout"
             style={{
               display: "grid",
-              gridTemplateColumns: "390px 1fr",
+              gridTemplateColumns: "410px 1fr",
               gap: "24px",
               alignItems: "start",
             }}
           >
             <form
               onSubmit={handleSubmit}
-              className="coytoy-admin-panel"
+              className="coytoy-admin-panel coytoy-admin-form"
               style={{
                 background: "rgba(15,20,38,0.72)",
                 border: "1px solid #1c2340",
@@ -425,7 +499,14 @@ export default function AdminDashboard() {
                   >
                     {formTitle}
                   </h2>
-                  <p style={{ color: "#5b6390", fontSize: "13px", margin: "6px 0 0" }}>
+
+                  <p
+                    style={{
+                      color: "#5b6390",
+                      fontSize: "13px",
+                      margin: "6px 0 0",
+                    }}
+                  >
                     {editingId
                       ? "Update selected product details."
                       : "Create a new inventory item."}
@@ -468,14 +549,24 @@ export default function AdminDashboard() {
                 >
                   <option value="">Select Category</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat} style={{ background: "#0c1020" }}>
+                    <option
+                      key={cat}
+                      value={cat}
+                      style={{ background: "#0c1020" }}
+                    >
                       {cat}
                     </option>
                   ))}
                 </select>
               </FormGroup>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
                 <FormGroup label="Price">
                   <input
                     className="coytoy-admin-input"
@@ -514,7 +605,44 @@ export default function AdminDashboard() {
                 />
               </FormGroup>
 
-              <FormGroup label={editingId ? "Replace Image Optional" : "Product Image"}>
+              <FormGroup
+                label={
+                  editingId
+                    ? "Product Images — keep, remove, or add more"
+                    : "Product Images — up to 4"
+                }
+              >
+                {editingId && existingImages.length > 0 && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <p
+                      style={{
+                        margin: "0 0 8px",
+                        color: "#5b6390",
+                        fontSize: "12px",
+                      }}
+                    >
+                      Current images
+                    </p>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: "8px",
+                      }}
+                    >
+                      {existingImages.map((img, index) => (
+                        <ImagePreviewBox
+                          key={`${img}-${index}`}
+                          src={img}
+                          label={`Image ${index + 1}`}
+                          onRemove={() => removeExistingImage(index)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <label
                   style={{
                     display: "block",
@@ -526,18 +654,33 @@ export default function AdminDashboard() {
                     textAlign: "center",
                   }}
                 >
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      style={{
-                        width: "100%",
-                        height: "170px",
-                        objectFit: "cover",
-                        borderRadius: "11px",
-                        marginBottom: "10px",
-                      }}
-                    />
+                  {newImagePreviews.length > 0 ? (
+                    <>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(4, 1fr)",
+                          gap: "8px",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        {newImagePreviews.map((preview, index) => (
+                          <ImagePreviewBox
+                            key={preview}
+                            src={preview}
+                            label={`New ${index + 1}`}
+                            onRemove={(e) => {
+                              e.preventDefault();
+                              removeSelectedImage(index);
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      <strong style={{ color: "#3fe3ff" }}>
+                        Click to change selected images
+                      </strong>
+                    </>
                   ) : (
                     <div
                       style={{
@@ -545,10 +688,22 @@ export default function AdminDashboard() {
                         color: "#8993b8",
                       }}
                     >
-                      <div style={{ fontSize: "28px", marginBottom: "8px" }}>🖼️</div>
-                      <strong style={{ color: "#3fe3ff" }}>Click to upload image</strong>
-                      <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#5b6390" }}>
-                        JPG, PNG, or WEBP
+                      <div style={{ fontSize: "28px", marginBottom: "8px" }}>
+                        🖼️
+                      </div>
+
+                      <strong style={{ color: "#3fe3ff" }}>
+                        Click to upload images
+                      </strong>
+
+                      <p
+                        style={{
+                          margin: "6px 0 0",
+                          fontSize: "12px",
+                          color: "#5b6390",
+                        }}
+                      >
+                        Select 1 to 4 JPG, PNG, or WEBP files
                       </p>
                     </div>
                   )}
@@ -556,10 +711,22 @@ export default function AdminDashboard() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setImageFile(e.target.files[0])}
+                    multiple
+                    onChange={handleImageChange}
                     style={{ display: "none" }}
                   />
                 </label>
+
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    color: "#5b6390",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  First image will be used as the main product card image.
+                </p>
               </FormGroup>
 
               <button
@@ -579,7 +746,9 @@ export default function AdminDashboard() {
                   fontWeight: 800,
                   fontFamily: "inherit",
                   cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: loading ? "none" : "0 0 20px rgba(255,63,199,0.25)",
+                  boxShadow: loading
+                    ? "none"
+                    : "0 0 20px rgba(255,63,199,0.25)",
                 }}
               >
                 {loading
@@ -643,7 +812,14 @@ export default function AdminDashboard() {
                   >
                     All Products
                   </h2>
-                  <p style={{ color: "#5b6390", fontSize: "13px", margin: "6px 0 0" }}>
+
+                  <p
+                    style={{
+                      color: "#5b6390",
+                      fontSize: "13px",
+                      margin: "6px 0 0",
+                    }}
+                  >
                     {products.length} products in inventory
                   </p>
                 </div>
@@ -668,6 +844,7 @@ export default function AdminDashboard() {
                       animation: "coytoy-pulse-ring 1.4s linear infinite",
                     }}
                   />
+
                   Loading products...
                 </div>
               ) : products.length === 0 ? (
@@ -680,10 +857,14 @@ export default function AdminDashboard() {
                     color: "#8993b8",
                   }}
                 >
-                  <div style={{ fontSize: "32px", marginBottom: "8px" }}>📦</div>
+                  <div style={{ fontSize: "32px", marginBottom: "8px" }}>
+                    📦
+                  </div>
+
                   <h3 style={{ color: "#eef1fb", margin: "0 0 6px" }}>
                     No products added yet
                   </h3>
+
                   <p style={{ margin: 0, fontSize: "14px" }}>
                     Add your first CoyToy product from the form.
                   </p>
@@ -700,6 +881,8 @@ export default function AdminDashboard() {
                     const qty = Number(product.quantity);
                     const outOfStock = qty <= 0;
                     const lowStock = qty > 0 && qty <= 5;
+                    const productImages = getProductImages(product);
+                    const mainImage = getMainProductImage(product);
 
                     return (
                       <div
@@ -745,17 +928,34 @@ export default function AdminDashboard() {
                               background: "#070a14",
                             }}
                           >
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                opacity: outOfStock ? 0.45 : 1,
-                                filter: outOfStock ? "grayscale(0.7)" : "none",
-                              }}
-                            />
+                            {mainImage ? (
+                              <img
+                                src={mainImage}
+                                alt={product.name}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  opacity: outOfStock ? 0.45 : 1,
+                                  filter: outOfStock
+                                    ? "grayscale(0.7)"
+                                    : "none",
+                                }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  height: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#5b6390",
+                                  fontSize: "13px",
+                                }}
+                              >
+                                No Image
+                              </div>
+                            )}
 
                             <span
                               style={{
@@ -775,7 +975,50 @@ export default function AdminDashboard() {
                             >
                               {product.category || "Unsorted"}
                             </span>
+
+                            <span
+                              style={{
+                                position: "absolute",
+                                right: "10px",
+                                bottom: "10px",
+                                padding: "4px 8px",
+                                borderRadius: "999px",
+                                background: "rgba(6,8,15,0.78)",
+                                border: "1px solid #1c2340",
+                                color: "#ff3fc7",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                              }}
+                            >
+                              {productImages.length} / 4 photos
+                            </span>
                           </div>
+
+                          {productImages.length > 1 && (
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(4, 1fr)",
+                                gap: "5px",
+                                padding: "8px 8px 0",
+                              }}
+                            >
+                              {productImages.slice(0, 4).map((img, index) => (
+                                <img
+                                  key={`${img}-${index}`}
+                                  src={img}
+                                  alt={`${product.name} ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: "34px",
+                                    objectFit: "cover",
+                                    borderRadius: "6px",
+                                    border: "1px solid #1c2340",
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
 
                           <div style={{ padding: "14px" }}>
                             <h3
@@ -817,7 +1060,8 @@ export default function AdminDashboard() {
                                   fontFamily: "'Orbitron', sans-serif",
                                   color: "#ff3fc7",
                                   fontSize: "16px",
-                                  textShadow: "0 0 10px rgba(255,63,199,0.45)",
+                                  textShadow:
+                                    "0 0 10px rgba(255,63,199,0.45)",
                                 }}
                               >
                                 {product.price} BDT
@@ -851,6 +1095,7 @@ export default function AdminDashboard() {
                                   color: "#3fe3ff",
                                   fontWeight: 800,
                                   cursor: "pointer",
+                                  fontFamily: "inherit",
                                 }}
                               >
                                 Edit
@@ -868,6 +1113,7 @@ export default function AdminDashboard() {
                                   color: "#ff4d6d",
                                   fontWeight: 800,
                                   cursor: "pointer",
+                                  fontFamily: "inherit",
                                 }}
                               >
                                 Delete
@@ -888,6 +1134,54 @@ export default function AdminDashboard() {
   );
 }
 
+function ImagePreviewBox({ src, label, onRemove }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        height: "72px",
+        borderRadius: "10px",
+        overflow: "hidden",
+        border: "1px solid #1c2340",
+        background: "#070a14",
+      }}
+    >
+      <img
+        src={src}
+        alt={label}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${label}`}
+        style={{
+          position: "absolute",
+          top: "5px",
+          right: "5px",
+          width: "22px",
+          height: "22px",
+          borderRadius: "50%",
+          border: "1px solid rgba(255,77,109,0.65)",
+          background: "rgba(6,8,15,0.88)",
+          color: "#ff4d6d",
+          fontWeight: 900,
+          lineHeight: 1,
+          cursor: "pointer",
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function FormGroup({ label, children }) {
   return (
     <div style={{ marginBottom: "15px" }}>
@@ -904,6 +1198,7 @@ function FormGroup({ label, children }) {
       >
         {label}
       </label>
+
       {children}
     </div>
   );
@@ -932,6 +1227,7 @@ function StatCard({ title, value, color }) {
       >
         {title}
       </p>
+
       <h3
         style={{
           margin: 0,

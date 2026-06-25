@@ -239,42 +239,17 @@ const KEYFRAMES = `
 
 function getStockStatus(quantity) {
   const qty = Number(quantity);
-
-  if (qty <= 0) {
-    return {
-      text: "Out of Stock",
-      color: "#ff4d6d",
-      glow: "rgba(255,77,109,0.5)",
-    };
-  }
-
-  if (qty <= 5) {
-    return {
-      text: "Low Stock",
-      color: "#ffb14e",
-      glow: "rgba(255,177,78,0.5)",
-    };
-  }
-
-  return {
-    text: "In Stock",
-    color: "#3fe3ff",
-    glow: "rgba(63,227,255,0.5)",
-  };
-}
-
-function getProductImage(product) {
-  return product.images?.[0] || product.imageUrl || product.image || "";
+  if (qty <= 0) return { text: "Out of Stock", color: "#ff4d6d", glow: "rgba(255,77,109,0.5)" };
+  if (qty <= 5) return { text: "Low Stock",    color: "#ffb14e", glow: "rgba(255,177,78,0.5)" };
+  return               { text: "In Stock",     color: "#3fe3ff", glow: "rgba(63,227,255,0.5)" };
 }
 
 function shuffle(arr) {
   const a = [...arr];
-
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
-
   return a;
 }
 
@@ -299,37 +274,19 @@ function StarsBg() {
 }
 
 /* ─── Product card ──────────────────────────────────── */
-function ProductCard({ product, index, onAdd, onOpen }) {
+function ProductCard({ product, index, onAdd }) {
   const stockStatus = getStockStatus(product.quantity);
   const outOfStock = Number(product.quantity) <= 0;
-  const productImage = getProductImage(product);
-
-  const handleOpen = () => {
-    if (!product.id) return;
-    onOpen(product);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleOpen();
-    }
-  };
 
   return (
     <div
       className="ct-card"
-      role="button"
-      tabIndex={0}
-      onClick={handleOpen}
-      onKeyDown={handleKeyDown}
       style={{
         width: "min(220px, 100%)",
         flex: "1 1 220px",
         maxWidth: "220px",
         borderRadius: "16px",
         animationDelay: `${Math.min(index * 0.06, 0.4)}s`,
-        cursor: "pointer",
       }}
     >
       {/* glow ring */}
@@ -340,8 +297,7 @@ function ProductCard({ product, index, onAdd, onOpen }) {
           position: "absolute",
           inset: "-1px",
           borderRadius: "16px",
-          background:
-            "linear-gradient(135deg, rgba(63,227,255,0.55), rgba(255,63,199,0.55))",
+          background: "linear-gradient(135deg, rgba(63,227,255,0.55), rgba(255,63,199,0.55))",
           opacity: 0.3,
           filter: "blur(6px)",
           transition: "opacity 0.3s ease",
@@ -363,85 +319,35 @@ function ProductCard({ product, index, onAdd, onOpen }) {
         }}
       >
         {/* image */}
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "150px",
-            overflow: "hidden",
-            background: "#070a14",
-          }}
-        >
-          {productImage ? (
-            <img
-              src={productImage}
-              alt={product.name}
-              className="ct-card-img"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-                transition: "transform 0.4s ease, filter 0.4s ease",
-                opacity: outOfStock ? 0.45 : 1,
-                filter: outOfStock ? "grayscale(0.6)" : "none",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#5b6390",
-                fontSize: "12px",
-              }}
-            >
-              No Image
-            </div>
-          )}
-
+        <div style={{ position: "relative", width: "100%", height: "150px", overflow: "hidden", background: "#070a14" }}>
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="ct-card-img"
+            style={{
+              width: "100%", height: "100%", objectFit: "cover", display: "block",
+              transition: "transform 0.4s ease, filter 0.4s ease",
+              opacity: outOfStock ? 0.45 : 1,
+              filter: outOfStock ? "grayscale(0.6)" : "none",
+            }}
+          />
           <div
             className="ct-scanline"
             aria-hidden="true"
             style={{
-              position: "absolute",
-              inset: 0,
-              opacity: 0,
-              transition: "opacity 0.3s ease",
-              background:
-                "linear-gradient(to bottom, transparent 0%, rgba(63,227,255,0.25) 48%, transparent 100%)",
+              position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.3s ease",
+              background: "linear-gradient(to bottom, transparent 0%, rgba(63,227,255,0.25) 48%, transparent 100%)",
               animation: "ct-scan 1.8s linear infinite",
               pointerEvents: "none",
             }}
           />
-
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to top, rgba(6,8,15,0.85), transparent 55%)",
-            }}
-          />
-
+          <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(6,8,15,0.85), transparent 55%)" }} />
           <span
             style={{
-              position: "absolute",
-              top: "8px",
-              left: "8px",
-              fontSize: "9px",
-              fontWeight: 700,
-              letterSpacing: "1px",
-              padding: "3px 7px",
-              borderRadius: "5px",
-              textTransform: "uppercase",
-              background: "rgba(6,8,15,0.7)",
-              border: "1px solid #1c2340",
-              color: "#3fe3ff",
+              position: "absolute", top: "8px", left: "8px",
+              fontSize: "9px", fontWeight: 700, letterSpacing: "1px",
+              padding: "3px 7px", borderRadius: "5px", textTransform: "uppercase",
+              background: "rgba(6,8,15,0.7)", border: "1px solid #1c2340", color: "#3fe3ff",
             }}
           >
             {product.category || "Unsorted"}
@@ -449,99 +355,32 @@ function ProductCard({ product, index, onAdd, onOpen }) {
         </div>
 
         {/* body */}
-        <div
-          style={{
-            padding: "12px 14px 14px",
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-          }}
-        >
-          <h3
-            style={{
-              margin: "0 0 4px",
-              fontSize: "14px",
-              fontWeight: 700,
-              color: "#eef1fb",
-              lineHeight: 1.3,
-            }}
-          >
+        <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", flex: 1 }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: "14px", fontWeight: 700, color: "#eef1fb", lineHeight: 1.3 }}>
             {product.name}
           </h3>
-
           {product.description && (
-            <p
-              style={{
-                margin: "0 0 10px",
-                fontSize: "11.5px",
-                color: "#8993b8",
-                lineHeight: 1.5,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
+            <p style={{
+              margin: "0 0 10px", fontSize: "11.5px", color: "#8993b8", lineHeight: 1.5,
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            }}>
               {product.description}
             </p>
           )}
-
           <div style={{ marginTop: "auto" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "'Orbitron', sans-serif",
-                  fontWeight: 700,
-                  fontSize: "16px",
-                  color: "#ff3fc7",
-                  textShadow: "0 0 10px rgba(255,63,199,0.5)",
-                }}
-              >
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: "16px", color: "#ff3fc7", textShadow: "0 0 10px rgba(255,63,199,0.5)" }}>
                 {product.price} BDT
               </span>
-
-              <span style={{ fontSize: "10px", color: "#5b6390" }}>
-                {product.quantity} left
-              </span>
+              <span style={{ fontSize: "10px", color: "#5b6390" }}>{product.quantity} left</span>
             </div>
-
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.4px",
-                color: stockStatus.color,
-                marginBottom: "10px",
-              }}
-            >
-              <span
-                style={{
-                  width: "5px",
-                  height: "5px",
-                  borderRadius: "50%",
-                  background: stockStatus.color,
-                  boxShadow: `0 0 6px ${stockStatus.glow}`,
-                }}
-              />
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "10px", fontWeight: 700, letterSpacing: "0.4px", color: stockStatus.color, marginBottom: "10px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: stockStatus.color, boxShadow: `0 0 6px ${stockStatus.glow}` }} />
               {stockStatus.text.toUpperCase()}
             </div>
-
             <button
               className="ct-add-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAdd(product);
-              }}
+              onClick={() => onAdd(product)}
               disabled={outOfStock}
             >
               {outOfStock ? "Out of Stock" : "Add to Cart"}
@@ -557,10 +396,7 @@ function ProductCard({ product, index, onAdd, onOpen }) {
 function SectionHeading({ eyebrow, title, accent = "#3fe3ff" }) {
   return (
     <div style={{ marginBottom: "32px" }}>
-      <p className="ct-section-label" style={{ marginBottom: "8px" }}>
-        {eyebrow}
-      </p>
-
+      <p className="ct-section-label" style={{ marginBottom: "8px" }}>{eyebrow}</p>
       <h2
         style={{
           fontFamily: "'Orbitron', sans-serif",
@@ -573,23 +409,16 @@ function SectionHeading({ eyebrow, title, accent = "#3fe3ff" }) {
       >
         {title}
       </h2>
-
-      <div
-        style={{
-          marginTop: "10px",
-          width: "48px",
-          height: "3px",
-          borderRadius: "2px",
-          background: `linear-gradient(90deg, ${accent}, transparent)`,
-        }}
-      />
+      <div style={{ marginTop: "10px", width: "48px", height: "3px", borderRadius: "2px", background: `linear-gradient(90deg, ${accent}, transparent)` }} />
     </div>
   );
 }
 
 /* ─── Divider ───────────────────────────────────────── */
 function Divider() {
-  return <div style={{ borderTop: "1px solid #1c2340", marginBlock: "0" }} />;
+  return (
+    <div style={{ borderTop: "1px solid #1c2340", marginBlock: "0" }} />
+  );
 }
 
 /* ─── MAIN COMPONENT ────────────────────────────────── */
@@ -605,7 +434,6 @@ export default function Landing() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-
       try {
         const data = await getProducts();
         setProducts(data);
@@ -616,17 +444,19 @@ export default function Landing() {
         setLoading(false);
       }
     };
-
     load();
   }, []);
 
+  /* placeholder product selections */
   const newProducts = useMemo(() => {
     if (!products.length) return [];
+    // Simulate "new arrivals" — last 5 by array position
     return [...products].slice(-5).reverse();
   }, [products]);
 
   const trendyProducts = useMemo(() => {
     if (!products.length) return [];
+    // Simulate "trendy" — random 5
     return shuffle(products).slice(0, 5);
   }, [products]);
 
@@ -635,31 +465,17 @@ export default function Landing() {
       alert("This product is out of stock");
       return;
     }
-
     addToCart(product);
     alert(`${product.name} added to cart!`);
   };
 
-  const handleOpenProduct = (product) => {
-    if (!product?.id) return;
-    navigate(`/product/${product.id}`);
-  };
-
-  const goToShop = () => navigate("/shop");
+  const goToShop = () => navigate("/shop"); // adjust route as needed
 
   const PAD = "clamp(20px, 5vw, 40px)";
   const MAX = "1240px";
 
-  const tickerItems = [
-    "Cars",
-    "Dolls",
-    "Action Figures",
-    "Plush Toys",
-    "Board Games",
-    "Educational",
-    "Collectibles",
-    "Cyberpunk Exclusives",
-  ];
+  /* ticker items */
+  const tickerItems = ["Cars", "Dolls", "Action Figures", "Plush Toys", "Board Games", "Educational", "Collectibles", "Cyberpunk Exclusives"];
 
   return (
     <div
@@ -678,7 +494,10 @@ export default function Landing() {
       <StarsBg />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {/* HERO BANNER */}
+
+        {/* ═══════════════════════════════════════════
+            HERO BANNER
+        ═══════════════════════════════════════════ */}
         <section
           style={{
             position: "relative",
@@ -692,6 +511,7 @@ export default function Landing() {
             overflow: "hidden",
           }}
         >
+          {/* hero ambient glow */}
           <div
             aria-hidden="true"
             style={{
@@ -709,58 +529,25 @@ export default function Landing() {
             }}
           />
 
+          {/* car SVG icon (same as shop) */}
           <svg
             width="100"
             height="40"
             viewBox="0 0 200 80"
             aria-hidden="true"
             style={{
-              filter:
-                "drop-shadow(0 0 10px #3fe3ff) drop-shadow(0 0 20px rgba(63,227,255,0.6))",
+              filter: "drop-shadow(0 0 10px #3fe3ff) drop-shadow(0 0 20px rgba(63,227,255,0.6))",
               marginBottom: "18px",
             }}
           >
             <path
               d="M10 58 Q40 56 55 40 Q72 22 95 18 L150 18 Q170 18 178 36 L185 36 Q192 36 192 44 L192 54 Q192 58 186 58 L20 58 Q10 58 10 58 Z"
-              fill="none"
-              stroke="#3fe3ff"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
+              fill="none" stroke="#3fe3ff" strokeWidth="2.5" strokeLinejoin="round"
             />
-            <circle
-              cx="48"
-              cy="58"
-              r="9"
-              fill="none"
-              stroke="#3fe3ff"
-              strokeWidth="2.5"
-            />
-            <circle
-              cx="155"
-              cy="58"
-              r="9"
-              fill="none"
-              stroke="#3fe3ff"
-              strokeWidth="2.5"
-            />
-            <line
-              x1="12"
-              y1="50"
-              x2="60"
-              y2="50"
-              stroke="#3fe3ff"
-              strokeWidth="2"
-              opacity="0.6"
-            />
-            <line
-              x1="12"
-              y1="44"
-              x2="45"
-              y2="44"
-              stroke="#3fe3ff"
-              strokeWidth="1.5"
-              opacity="0.4"
-            />
+            <circle cx="48" cy="58" r="9" fill="none" stroke="#3fe3ff" strokeWidth="2.5" />
+            <circle cx="155" cy="58" r="9" fill="none" stroke="#3fe3ff" strokeWidth="2.5" />
+            <line x1="12" y1="50" x2="60" y2="50" stroke="#3fe3ff" strokeWidth="2" opacity="0.6" />
+            <line x1="12" y1="44" x2="45" y2="44" stroke="#3fe3ff" strokeWidth="1.5" opacity="0.4" />
           </svg>
 
           <h1 className="ct-hero-title">COYTOY</h1>
@@ -799,30 +586,17 @@ export default function Landing() {
 
           <div
             className="ct-hero-actions"
-            style={{
-              display: "flex",
-              gap: "14px",
-              flexWrap: "wrap",
-              marginTop: "40px",
-              justifyContent: "center",
-            }}
+            style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginTop: "40px", justifyContent: "center" }}
           >
             <button className="ct-cta-primary" onClick={goToShop}>
               <span>⚡</span> Shop Now
             </button>
-
-            <button
-              className="ct-cta-secondary"
-              onClick={() =>
-                document
-                  .getElementById("ct-new")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
+            <button className="ct-cta-secondary" onClick={() => document.getElementById("ct-new")?.scrollIntoView({ behavior: "smooth" })}>
               View New Arrivals
             </button>
           </div>
 
+          {/* scroll hint */}
           <div
             style={{
               position: "absolute",
@@ -837,28 +611,14 @@ export default function Landing() {
               animation: "ct-fade-up 1s 1.5s ease both",
             }}
           >
-            <span
-              style={{
-                fontSize: "11px",
-                letterSpacing: "2px",
-                color: "#3fe3ff",
-                fontFamily: "'Orbitron', sans-serif",
-              }}
-            >
-              SCROLL
-            </span>
-
-            <div
-              style={{
-                width: "1px",
-                height: "28px",
-                background: "linear-gradient(to bottom, #3fe3ff, transparent)",
-              }}
-            />
+            <span style={{ fontSize: "11px", letterSpacing: "2px", color: "#3fe3ff", fontFamily: "'Orbitron', sans-serif" }}>SCROLL</span>
+            <div style={{ width: "1px", height: "28px", background: "linear-gradient(to bottom, #3fe3ff, transparent)" }} />
           </div>
         </section>
 
-        {/* TICKER STRIP */}
+        {/* ═══════════════════════════════════════════
+            TICKER STRIP
+        ═══════════════════════════════════════════ */}
         <div
           style={{
             overflow: "hidden",
@@ -884,8 +644,7 @@ export default function Landing() {
                     opacity: 0.75,
                   }}
                 >
-                  {item}
-                  <span style={{ opacity: 0.3, marginLeft: "24px" }}>◆</span>
+                  {item} <span style={{ opacity: 0.3, marginLeft: "24px" }}>◆</span>
                 </span>
               ))}
             </div>
@@ -894,50 +653,27 @@ export default function Landing() {
 
         <Divider />
 
-        {/* NEW PRODUCTS */}
+        {/* ═══════════════════════════════════════════
+            NEW PRODUCTS
+        ═══════════════════════════════════════════ */}
         <section
           id="ct-new"
-          style={{
-            padding: `72px ${PAD}`,
-            maxWidth: MAX,
-            marginInline: "auto",
-          }}
+          style={{ padding: `72px ${PAD}`, maxWidth: MAX, marginInline: "auto" }}
         >
-          <SectionHeading
-            eyebrow="Just Arrived"
-            title="New Products"
-            accent="#3fe3ff"
-          />
+          <SectionHeading eyebrow="Just Arrived" title="New Products" accent="#3fe3ff" />
 
           {loading ? (
             <LoadingSpinner />
           ) : (
-            <div
-              style={{
-                display: "flex",
-                gap: "20px",
-                flexWrap: "wrap",
-                justifyContent: "flex-start",
-              }}
-            >
+            <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "flex-start" }}>
               {newProducts.map((p, i) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  index={i}
-                  onAdd={handleAddToCart}
-                  onOpen={handleOpenProduct}
-                />
+                <ProductCard key={p.id} product={p} index={i} onAdd={handleAddToCart} />
               ))}
             </div>
           )}
 
           <div style={{ marginTop: "32px" }}>
-            <button
-              className="ct-cta-secondary"
-              onClick={goToShop}
-              style={{ fontSize: "12px", padding: "12px 28px" }}
-            >
+            <button className="ct-cta-secondary" onClick={goToShop} style={{ fontSize: "12px", padding: "12px 28px" }}>
               See All Products →
             </button>
           </div>
@@ -945,7 +681,9 @@ export default function Landing() {
 
         <Divider />
 
-        {/* OFFERS */}
+        {/* ═══════════════════════════════════════════
+            OFFERS / DISCOUNT BANNER
+        ═══════════════════════════════════════════ */}
         <section
           style={{
             padding: `72px ${PAD}`,
@@ -954,20 +692,13 @@ export default function Landing() {
           }}
         >
           <div style={{ maxWidth: MAX, marginInline: "auto" }}>
-            <SectionHeading
-              eyebrow="Limited Time"
-              title="Offers & Deals"
-              accent="#ff3fc7"
-            />
+            <SectionHeading eyebrow="Limited Time" title="Offers & Deals" accent="#ff3fc7" />
 
             <div
               className="ct-offer-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: "20px",
-              }}
+              style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}
             >
+              {/* Offer card 1 */}
               <OfferCard
                 badge="SEASONAL SALE"
                 badgeColor="#ff3fc7"
@@ -980,7 +711,7 @@ export default function Landing() {
                 onCta={goToShop}
                 index={0}
               />
-
+              {/* Offer card 2 */}
               <OfferCard
                 badge="BUNDLE DEAL"
                 badgeColor="#3fe3ff"
@@ -993,7 +724,7 @@ export default function Landing() {
                 onCta={goToShop}
                 index={1}
               />
-
+              {/* Offer card 3 */}
               <OfferCard
                 badge="FLASH DEAL"
                 badgeColor="#ffb14e"
@@ -1012,49 +743,24 @@ export default function Landing() {
 
         <Divider />
 
-        {/* TRENDY PRODUCTS */}
-        <section
-          style={{
-            padding: `72px ${PAD}`,
-            maxWidth: MAX,
-            marginInline: "auto",
-          }}
-        >
-          <SectionHeading
-            eyebrow="Everyone's Picking"
-            title="Trending Now"
-            accent="#ff3fc7"
-          />
+        {/* ═══════════════════════════════════════════
+            TRENDY PRODUCTS
+        ═══════════════════════════════════════════ */}
+        <section style={{ padding: `72px ${PAD}`, maxWidth: MAX, marginInline: "auto" }}>
+          <SectionHeading eyebrow="Everyone's Picking" title="Trending Now" accent="#ff3fc7" />
 
           {loading ? (
             <LoadingSpinner />
           ) : (
-            <div
-              style={{
-                display: "flex",
-                gap: "20px",
-                flexWrap: "wrap",
-                justifyContent: "flex-start",
-              }}
-            >
+            <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "flex-start" }}>
               {trendyProducts.map((p, i) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  index={i}
-                  onAdd={handleAddToCart}
-                  onOpen={handleOpenProduct}
-                />
+                <ProductCard key={p.id} product={p} index={i} onAdd={handleAddToCart} />
               ))}
             </div>
           )}
 
           <div style={{ marginTop: "32px" }}>
-            <button
-              className="ct-cta-secondary"
-              onClick={goToShop}
-              style={{ fontSize: "12px", padding: "12px 28px" }}
-            >
+            <button className="ct-cta-secondary" onClick={goToShop} style={{ fontSize: "12px", padding: "12px 28px" }}>
               See Full Inventory →
             </button>
           </div>
@@ -1062,7 +768,9 @@ export default function Landing() {
 
         <Divider />
 
-        {/* FINAL CTA */}
+        {/* ═══════════════════════════════════════════
+            FINAL CTA BANNER
+        ═══════════════════════════════════════════ */}
         <section
           style={{
             padding: `96px ${PAD}`,
@@ -1082,12 +790,8 @@ export default function Landing() {
               pointerEvents: "none",
             }}
           />
-
           <div style={{ position: "relative" }}>
-            <p className="ct-section-label" style={{ marginBottom: "14px" }}>
-              Ready to explore?
-            </p>
-
+            <p className="ct-section-label" style={{ marginBottom: "14px" }}>Ready to explore?</p>
             <h2
               style={{
                 fontFamily: "'Orbitron', sans-serif",
@@ -1100,32 +804,18 @@ export default function Landing() {
             >
               The full inventory awaits.
             </h2>
-
-            <p
-              style={{
-                color: "#8993b8",
-                fontSize: "16px",
-                maxWidth: "440px",
-                marginInline: "auto",
-                marginBottom: "36px",
-                lineHeight: 1.65,
-              }}
-            >
-              Browse every toy, filter by category and budget, and add your
-              picks to cart in seconds.
+            <p style={{ color: "#8993b8", fontSize: "16px", maxWidth: "440px", marginInline: "auto", marginBottom: "36px", lineHeight: 1.65 }}>
+              Browse every toy, filter by category and budget, and add your picks to cart in seconds.
             </p>
-
-            <button
-              className="ct-cta-primary"
-              onClick={goToShop}
-              style={{ fontSize: "16px", padding: "18px 52px" }}
-            >
+            <button className="ct-cta-primary" onClick={goToShop} style={{ fontSize: "16px", padding: "18px 52px" }}>
               ⚡ Shop Now
             </button>
           </div>
         </section>
 
-        {/* FOOTER */}
+        {/* ═══════════════════════════════════════════
+            FOOTER
+        ═══════════════════════════════════════════ */}
         <footer
           style={{
             borderTop: "1px solid #1c2340",
@@ -1149,30 +839,18 @@ export default function Landing() {
           >
             COYTOY
           </span>
-
           <span style={{ fontSize: "12px", color: "#3b4266" }}>
-            © {new Date().getFullYear()} CoyToy. Fandom Collectibles. All
-            rights reserved.
+            © {new Date().getFullYear()} CoyToy. Fandom Collectibles. All rights reserved.
           </span>
         </footer>
+
       </div>
     </div>
   );
 }
 
 /* ─── Offer Card ────────────────────────────────────── */
-function OfferCard({
-  badge,
-  badgeColor,
-  title,
-  body,
-  cta,
-  ctaColor,
-  bgAccent,
-  borderColor,
-  onCta,
-  index,
-}) {
+function OfferCard({ badge, badgeColor, title, body, cta, ctaColor, bgAccent, borderColor, onCta, index }) {
   return (
     <div
       className="ct-offer-badge"
@@ -1204,7 +882,6 @@ function OfferCard({
       >
         {badge}
       </span>
-
       <h3
         style={{
           margin: 0,
@@ -1217,18 +894,9 @@ function OfferCard({
       >
         {title}
       </h3>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "13.5px",
-          color: "#8993b8",
-          lineHeight: 1.65,
-        }}
-      >
+      <p style={{ margin: 0, fontSize: "13.5px", color: "#8993b8", lineHeight: 1.65 }}>
         {body}
       </p>
-
       <button
         onClick={onCta}
         style={{
@@ -1264,29 +932,15 @@ function OfferCard({
 /* ─── Loading Spinner ───────────────────────────────── */
 function LoadingSpinner() {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "14px",
-        padding: "40px 0",
-        color: "#5b6390",
-      }}
-    >
+    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "40px 0", color: "#5b6390" }}>
       <div
         style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "50%",
-          border: "3px solid #1c2340",
-          borderTopColor: "#ff3fc7",
+          width: "32px", height: "32px", borderRadius: "50%",
+          border: "3px solid #1c2340", borderTopColor: "#ff3fc7",
           animation: "ct-pulse-ring 1.2s linear infinite",
         }}
       />
-
-      <span style={{ fontSize: "13px", letterSpacing: "1px" }}>
-        Loading inventory…
-      </span>
+      <span style={{ fontSize: "13px", letterSpacing: "1px" }}>Loading inventory…</span>
     </div>
   );
 }
