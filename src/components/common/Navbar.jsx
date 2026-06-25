@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../services/firebase/firebaseConfig";
 import { useCart } from "../../context/CartContext";
+
+const ADMIN_EMAIL = "admin@coytoybd.com";
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
 const NAV_STYLE_ID = "coytoy-navbar-styles";
@@ -31,8 +34,12 @@ function ensureNavStylesInjected() {
 }
 
 @keyframes coytoy-badge-pulse {
-  0%, 100% { box-shadow: 0 0 6px rgba(63,227,255,0.55), 0 0 0 0 rgba(63,227,255,0.4); }
-  50% { box-shadow: 0 0 10px rgba(63,227,255,0.85), 0 0 0 4px rgba(63,227,255,0); }
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(63,227,255,0.55), 0 0 0 0 rgba(63,227,255,0.4);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(63,227,255,0.85), 0 0 0 4px rgba(63,227,255,0);
+  }
 }
 
 .coytoy-brand-link {
@@ -117,6 +124,11 @@ function ensureNavStylesInjected() {
   cursor: pointer;
 }
 
+.coytoy-logout-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .coytoy-menu-btn {
   display: none;
   margin-left: auto;
@@ -180,25 +192,29 @@ export default function Navbar() {
 
   const navigate = useNavigate();
   const { cartItems } = useCart();
+  const [user] = useAuthState(auth);
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   const cartCount = cartItems.reduce(
-    (total, item) => total + item.quantityInCart,
+    (total, item) => total + Number(item.quantityInCart || 0),
     0
   );
 
   const handleLogout = async () => {
-    setLoggingOut(true);
-    try {
-      await signOut(auth);
-      navigate("/admin-login");
-      setMenuOpen(false);
-    } finally {
-      setLoggingOut(false);
-    }
-  };
+  setLoggingOut(true);
+
+  try {
+    await signOut(auth);
+    setMenuOpen(false);
+    navigate("/", { replace: true });
+  } finally {
+    setLoggingOut(false);
+  }
+};
 
   return (
     <nav
@@ -252,8 +268,22 @@ export default function Navbar() {
               strokeWidth="4"
               strokeLinejoin="round"
             />
-            <circle cx="48" cy="58" r="9" fill="none" stroke="#3fe3ff" strokeWidth="4" />
-            <circle cx="155" cy="58" r="9" fill="none" stroke="#3fe3ff" strokeWidth="4" />
+            <circle
+              cx="48"
+              cy="58"
+              r="9"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="4"
+            />
+            <circle
+              cx="155"
+              cy="58"
+              r="9"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="4"
+            />
           </svg>
 
           <span
@@ -288,7 +318,9 @@ export default function Navbar() {
             <span>🛒</span>
             <span>Cart</span>
             <span
-              className={"coytoy-cart-badge" + (cartCount > 0 ? " has-items" : "")}
+              className={
+                "coytoy-cart-badge" + (cartCount > 0 ? " has-items" : "")
+              }
               style={
                 cartCount > 0
                   ? { animation: "coytoy-badge-pulse 2s ease-in-out infinite" }
@@ -300,34 +332,40 @@ export default function Navbar() {
           </Link>
 
           <div className="coytoy-admin-group">
-            <NavLink
-              to="/admin-login"
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                "coytoy-admin-link" + (isActive ? " is-active" : "")
-              }
-            >
-              Admin Login
-            </NavLink>
+            {!isAdmin && (
+              <NavLink
+                to="/admin-login"
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) =>
+                  "coytoy-admin-link" + (isActive ? " is-active" : "")
+                }
+              >
+                Admin Login
+              </NavLink>
+            )}
 
-            <NavLink
-              to="/admin-dashboard"
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                "coytoy-admin-link" + (isActive ? " is-active" : "")
-              }
-            >
-              Dashboard
-            </NavLink>
+            {isAdmin && (
+              <NavLink
+                to="/admin-dashboard"
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) =>
+                  "coytoy-admin-link" + (isActive ? " is-active" : "")
+                }
+              >
+                Dashboard
+              </NavLink>
+            )}
           </div>
 
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="coytoy-logout-btn"
-          >
-            {loggingOut ? "Signing out…" : "Logout"}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="coytoy-logout-btn"
+            >
+              {loggingOut ? "Signing out…" : "Logout"}
+            </button>
+          )}
         </div>
       </div>
     </nav>

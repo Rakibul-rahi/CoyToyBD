@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
 
@@ -41,12 +41,14 @@ const STYLES = `
 }
 
 .coytoy-cart-btn,
-.coytoy-cart-link {
+.coytoy-cart-link,
+.coytoy-buyer-input {
   transition: all 0.2s ease;
 }
 
 .coytoy-cart-btn:focus-visible,
-.coytoy-cart-link:focus-visible {
+.coytoy-cart-link:focus-visible,
+.coytoy-buyer-input:focus-visible {
   outline: 2px solid #3fe3ff;
   outline-offset: 2px;
 }
@@ -58,6 +60,11 @@ const STYLES = `
 .coytoy-cart-qty-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed !important;
+}
+
+.coytoy-buyer-input:focus {
+  border-color: #3fe3ff !important;
+  box-shadow: 0 0 18px rgba(63,227,255,0.14);
 }
 
 @keyframes coytoy-fade-up {
@@ -174,6 +181,16 @@ export default function Cart() {
     clearCart,
   } = useCart();
 
+  const [showBuyerForm, setShowBuyerForm] = useState(false);
+
+  const [buyerInfo, setBuyerInfo] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    notes: "",
+  });
+
   const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER;
 
   const totalPrice = cartItems.reduce((total, item) => {
@@ -184,6 +201,20 @@ export default function Cart() {
     return total + Number(item.quantityInCart || 0);
   }, 0);
 
+  const isBuyerInfoComplete =
+    buyerInfo.name.trim() &&
+    buyerInfo.phone.trim() &&
+    buyerInfo.address.trim();
+
+  const handleBuyerChange = (e) => {
+    const { name, value } = e.target;
+
+    setBuyerInfo((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const formatMoney = (amount) => {
     return `${Number(amount || 0).toLocaleString("en-BD")} BDT`;
   };
@@ -191,6 +222,11 @@ export default function Cart() {
   const checkoutOnWhatsApp = () => {
     if (cartItems.length === 0) {
       alert("Your cart is empty");
+      return;
+    }
+
+    if (!isBuyerInfoComplete) {
+      alert("Please fill in your name, phone number, and address.");
       return;
     }
 
@@ -207,6 +243,7 @@ export default function Cart() {
           Number(item.price || 0) * Number(item.quantityInCart || 0);
 
         return `${index + 1}. ${item.name}
+   Product ID: ${item.uid || item.id || "N/A"}
    Category: ${item.category || "N/A"}
    Quantity: ${item.quantityInCart}
    Unit Price: ${formatMoney(item.price)}
@@ -217,6 +254,15 @@ export default function Cart() {
     const message = `Hello CoyToy,
 
 I want to place an order.
+
+Buyer Information:
+Name: ${buyerInfo.name}
+Phone: ${buyerInfo.phone}
+Email: ${buyerInfo.email || "Not provided"}
+Address: ${buyerInfo.address}
+Delivery Notes: ${buyerInfo.notes || "None"}
+
+Order Details:
 
 ${productLines}
 
@@ -247,19 +293,6 @@ Please confirm availability and delivery details.`;
     >
       <style>{STYLES}</style>
 
-      <div
-        aria-hidden="true"
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-          backgroundImage:
-            "radial-gradient(1.5px 1.5px at 20% 30%, #ffffff 100%, transparent), radial-gradient(1px 1px at 75% 15%, #ffffff 100%, transparent), radial-gradient(1px 1px at 40% 70%, #ffffff 100%, transparent), radial-gradient(2px 2px at 85% 80%, #ffffff 100%, transparent), radial-gradient(1px 1px at 10% 85%, #ffffff 100%, transparent), radial-gradient(1px 1px at 52% 52%, #ffffff 100%, transparent)",
-          opacity: 0.42,
-        }}
-      />
-
       <div style={{ position: "relative", zIndex: 1 }}>
         <header
           className="coytoy-cart-header"
@@ -278,7 +311,6 @@ Please confirm availability and delivery details.`;
               fontWeight: 700,
               margin: "0 0 12px",
               textTransform: "uppercase",
-              textShadow: "0 0 10px rgba(63,227,255,0.7)",
             }}
           >
             Checkout Terminal
@@ -310,8 +342,8 @@ Please confirm availability and delivery details.`;
               lineHeight: 1.6,
             }}
           >
-            Review your selected toys and collectibles before confirming the
-            order through WhatsApp.
+            Review your selected toys before confirming the order through
+            WhatsApp.
           </p>
         </header>
 
@@ -341,7 +373,8 @@ Please confirm availability and delivery details.`;
                   const availableQuantity = Number(item.quantity || 0);
                   const subtotal = Number(item.price || 0) * quantityInCart;
                   const reachedStockLimit =
-                    availableQuantity > 0 && quantityInCart >= availableQuantity;
+                    availableQuantity > 0 &&
+                    quantityInCart >= availableQuantity;
 
                   return (
                     <div
@@ -357,9 +390,6 @@ Please confirm availability and delivery details.`;
                         background: "rgba(15,20,38,0.72)",
                         border: "1px solid #1c2340",
                         backdropFilter: "blur(10px)",
-                        transition:
-                          "transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
-                        animationDelay: `${Math.min(index * 0.05, 0.35)}s`,
                       }}
                     >
                       <img
@@ -390,14 +420,7 @@ Please confirm availability and delivery details.`;
                           {item.category || "Collectible"}
                         </p>
 
-                        <h3
-                          style={{
-                            margin: "0 0 8px",
-                            fontSize: "17px",
-                            color: "#eef1fb",
-                            lineHeight: 1.35,
-                          }}
-                        >
+                        <h3 style={{ margin: "0 0 8px", fontSize: "17px" }}>
                           {item.name}
                         </h3>
 
@@ -438,7 +461,6 @@ Please confirm availability and delivery details.`;
                               disabled={quantityInCart <= 1}
                               className="coytoy-cart-btn coytoy-cart-qty-btn"
                               style={quantityButtonStyle}
-                              aria-label={`Decrease quantity of ${item.name}`}
                             >
                               −
                             </button>
@@ -448,7 +470,6 @@ Please confirm availability and delivery details.`;
                                 minWidth: "28px",
                                 textAlign: "center",
                                 fontWeight: 800,
-                                color: "#eef1fb",
                               }}
                             >
                               {quantityInCart}
@@ -459,7 +480,6 @@ Please confirm availability and delivery details.`;
                               disabled={reachedStockLimit}
                               className="coytoy-cart-btn coytoy-cart-qty-btn"
                               style={quantityButtonStyle}
-                              aria-label={`Increase quantity of ${item.name}`}
                             >
                               +
                             </button>
@@ -511,8 +531,6 @@ Please confirm availability and delivery details.`;
                               fontFamily: "'Orbitron', sans-serif",
                               color: "#ff3fc7",
                               fontSize: "18px",
-                              textShadow: "0 0 10px rgba(255,63,199,0.45)",
-                              whiteSpace: "nowrap",
                             }}
                           >
                             {formatMoney(subtotal)}
@@ -550,14 +568,12 @@ Please confirm availability and delivery details.`;
                   background: "rgba(15,20,38,0.78)",
                   border: "1px solid #1c2340",
                   backdropFilter: "blur(10px)",
-                  boxShadow: "0 0 35px rgba(0,0,0,0.35)",
                 }}
               >
                 <h2
                   style={{
                     fontFamily: "'Orbitron', sans-serif",
                     fontSize: "20px",
-                    letterSpacing: "1px",
                     margin: "0 0 18px",
                   }}
                 >
@@ -580,7 +596,6 @@ Please confirm availability and delivery details.`;
                     display: "flex",
                     justifyContent: "space-between",
                     gap: "14px",
-                    alignItems: "baseline",
                     marginBottom: "20px",
                   }}
                 >
@@ -601,32 +616,52 @@ Please confirm availability and delivery details.`;
                       color: "#ff3fc7",
                       fontSize: "24px",
                       textAlign: "right",
-                      textShadow: "0 0 12px rgba(255,63,199,0.55)",
                     }}
                   >
                     {formatMoney(totalPrice)}
                   </strong>
                 </div>
 
-                <button
-                  onClick={checkoutOnWhatsApp}
-                  className="coytoy-cart-btn"
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    borderRadius: "11px",
-                    border: "1px solid #25D366",
-                    background:
-                      "linear-gradient(135deg, rgba(37,211,102,0.22), rgba(63,227,255,0.12))",
-                    color: "#25D366",
-                    fontSize: "14px",
-                    fontWeight: 900,
-                    cursor: "pointer",
-                    boxShadow: "0 0 20px rgba(37,211,102,0.22)",
-                  }}
-                >
-                  Checkout on WhatsApp
-                </button>
+                {!showBuyerForm && (
+                  <button
+                    onClick={() => setShowBuyerForm(true)}
+                    className="coytoy-cart-btn"
+                    style={mainButtonStyle}
+                  >
+                    Checkout
+                  </button>
+                )}
+
+                {showBuyerForm && (
+                  <BuyerInfoForm
+                    buyerInfo={buyerInfo}
+                    handleBuyerChange={handleBuyerChange}
+                  />
+                )}
+
+                {showBuyerForm && isBuyerInfoComplete && (
+                  <button
+                    onClick={checkoutOnWhatsApp}
+                    className="coytoy-cart-btn"
+                    style={whatsappButtonStyle}
+                  >
+                    Checkout on WhatsApp
+                  </button>
+                )}
+
+                {showBuyerForm && !isBuyerInfoComplete && (
+                  <p
+                    style={{
+                      color: "#ffb14e",
+                      fontSize: "12px",
+                      lineHeight: 1.5,
+                      margin: "10px 0 0",
+                      textAlign: "center",
+                    }}
+                  >
+                    Fill name, phone number, and address to continue.
+                  </p>
+                )}
 
                 <button
                   onClick={clearCart}
@@ -662,23 +697,86 @@ Please confirm availability and delivery details.`;
                 >
                   Continue Shopping
                 </Link>
-
-                <p
-                  style={{
-                    margin: "18px 0 0",
-                    color: "#5b6390",
-                    fontSize: "12.5px",
-                    lineHeight: 1.6,
-                    textAlign: "center",
-                  }}
-                >
-                  You will be redirected to WhatsApp with your order details.
-                </p>
               </aside>
             </div>
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+function BuyerInfoForm({ buyerInfo, handleBuyerChange }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: "10px",
+        marginBottom: "12px",
+        padding: "14px",
+        borderRadius: "14px",
+        border: "1px solid #1c2340",
+        background: "rgba(6,8,15,0.45)",
+      }}
+    >
+      <h3
+        style={{
+          margin: "0 0 4px",
+          fontSize: "15px",
+          color: "#3fe3ff",
+          fontWeight: 900,
+        }}
+      >
+        Buyer Information
+      </h3>
+
+      <input
+        className="coytoy-buyer-input"
+        name="name"
+        placeholder="Full Name *"
+        value={buyerInfo.name}
+        onChange={handleBuyerChange}
+        style={inputStyle}
+      />
+
+      <input
+        className="coytoy-buyer-input"
+        name="phone"
+        placeholder="Phone Number *"
+        value={buyerInfo.phone}
+        onChange={handleBuyerChange}
+        style={inputStyle}
+      />
+
+      <input
+        className="coytoy-buyer-input"
+        name="email"
+        type="email"
+        placeholder="Email Address"
+        value={buyerInfo.email}
+        onChange={handleBuyerChange}
+        style={inputStyle}
+      />
+
+      <textarea
+        className="coytoy-buyer-input"
+        name="address"
+        placeholder="Delivery Address *"
+        value={buyerInfo.address}
+        onChange={handleBuyerChange}
+        rows={3}
+        style={inputStyle}
+      />
+
+      <textarea
+        className="coytoy-buyer-input"
+        name="notes"
+        placeholder="Delivery Notes"
+        value={buyerInfo.notes}
+        onChange={handleBuyerChange}
+        rows={2}
+        style={inputStyle}
+      />
     </div>
   );
 }
@@ -730,7 +828,6 @@ function EmptyCart() {
           color: "#3fe3ff",
           fontWeight: 800,
           textDecoration: "none",
-          boxShadow: "0 0 20px rgba(63,227,255,0.25)",
         }}
       >
         Continue Shopping
@@ -766,4 +863,42 @@ const quantityButtonStyle = {
   color: "#3fe3ff",
   fontWeight: 900,
   cursor: "pointer",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "11px 12px",
+  borderRadius: "10px",
+  border: "1px solid #1c2340",
+  background: "#0c1020",
+  color: "#eef1fb",
+  fontSize: "13px",
+  fontFamily: "'Inter', system-ui, sans-serif",
+  resize: "vertical",
+};
+
+const mainButtonStyle = {
+  width: "100%",
+  padding: "13px",
+  borderRadius: "11px",
+  border: "1px solid #3fe3ff",
+  background: "rgba(63,227,255,0.12)",
+  color: "#3fe3ff",
+  fontSize: "14px",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const whatsappButtonStyle = {
+  width: "100%",
+  padding: "13px",
+  borderRadius: "11px",
+  border: "1px solid #25D366",
+  background:
+    "linear-gradient(135deg, rgba(37,211,102,0.22), rgba(63,227,255,0.12))",
+  color: "#25D366",
+  fontSize: "14px",
+  fontWeight: 900,
+  cursor: "pointer",
+  boxShadow: "0 0 20px rgba(37,211,102,0.22)",
 };

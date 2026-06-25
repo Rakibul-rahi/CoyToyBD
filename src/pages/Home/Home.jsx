@@ -298,9 +298,13 @@ export default function Home() {
       const productCategory = product.category || "";
       const productPrice = Number(product.price) || 0;
 
-      const matchesSearch = productName
-        .toLowerCase()
-        .includes(searchText.toLowerCase());
+      const search = searchText.trim().toLowerCase();
+
+      const matchesSearch =
+      productName.toLowerCase().includes(search) ||
+      productCategory.toLowerCase().includes(search) ||
+      (product.uid || "").toLowerCase().includes(search) ||
+      (product.id || "").toLowerCase().includes(search);
 
       const matchesCategory =
         selectedCategory === "All" || productCategory === selectedCategory;
