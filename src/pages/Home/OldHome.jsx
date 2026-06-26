@@ -1,12 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getProducts } from "../../services/productService";
 import { useCart } from "../../context/CartContext";
-import { useProducts } from "../../context/ProductContext";
-import coytoyLogo from "../../assets/coytoy-logo.png";
 
 /* ---------------------------------------------------------
    CoyToy — Landing Page
-   Uses ProductContext cache instead of fetching products again
+   Fixed equal product card sizes
 --------------------------------------------------------- */
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
@@ -72,11 +71,6 @@ const KEYFRAMES = `
   50%      { opacity: 1; }
 }
 
-@keyframes ct-logo-glow {
-  0%, 100% { filter: drop-shadow(0 0 18px rgba(255,63,199,0.35)) drop-shadow(0 0 36px rgba(63,227,255,0.18)); }
-  50%      { filter: drop-shadow(0 0 26px rgba(255,63,199,0.55)) drop-shadow(0 0 48px rgba(63,227,255,0.3)); }
-}
-
 @keyframes ct-ticker {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -87,12 +81,19 @@ const KEYFRAMES = `
   100% { transform: scale(1); opacity: 1; }
 }
 
-.ct-hero-logo {
-  animation: ct-flicker-in 1.4s ease-out both, ct-logo-glow 4.5s 1.4s ease-in-out infinite;
-  width: min(420px, 78vw);
-  height: auto;
-  display: block;
-  margin: 0 auto;
+.ct-hero-title {
+  animation: ct-flicker-in 1.5s ease-out both;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  font-size: clamp(42px, 8vw, 88px);
+  letter-spacing: 4px;
+  line-height: 1;
+  margin: 0;
+  color: #ff3fc7;
+  text-shadow:
+    0 0 8px rgba(255,63,199,0.9),
+    0 0 26px rgba(255,63,199,0.6),
+    0 0 60px rgba(255,63,199,0.35);
 }
 
 .ct-hero-sub {
@@ -150,6 +151,7 @@ const KEYFRAMES = `
   transform: translateY(-2px);
 }
 
+/* ---------- Fixed Product Cards ---------- */
 .ct-product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 220px));
@@ -249,7 +251,7 @@ const KEYFRAMES = `
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ct-hero-logo,
+  .ct-hero-title,
   .ct-hero-sub,
   .ct-cta-primary,
   .ct-cta-secondary,
@@ -287,10 +289,6 @@ const KEYFRAMES = `
   .ct-card {
     width: 100%;
     height: 350px;
-  }
-
-  .ct-hero-logo {
-    width: min(280px, 82vw);
   }
 }
 `;
@@ -659,7 +657,26 @@ export default function Landing() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const { products, loadingProducts } = useProducts();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+
+      try {
+        const data = await getProducts();
+        setProducts(data);
+      } catch (e) {
+        console.error("Failed to load products:", e);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
 
   const newProducts = useMemo(() => {
     if (!products.length) return [];
@@ -749,16 +766,83 @@ export default function Landing() {
             }}
           />
 
-          <img
-            src={coytoyLogo}
-            alt="CoyToy — Fandom Collectibles"
-            className="ct-hero-logo"
-          />
+          <svg
+            width="100"
+            height="40"
+            viewBox="0 0 200 80"
+            aria-hidden="true"
+            style={{
+              filter:
+                "drop-shadow(0 0 10px #3fe3ff) drop-shadow(0 0 20px rgba(63,227,255,0.6))",
+              marginBottom: "18px",
+            }}
+          >
+            <path
+              d="M10 58 Q40 56 55 40 Q72 22 95 18 L150 18 Q170 18 178 36 L185 36 Q192 36 192 44 L192 54 Q192 58 186 58 L20 58 Q10 58 10 58 Z"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+            />
+            <circle
+              cx="48"
+              cy="58"
+              r="9"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="2.5"
+            />
+            <circle
+              cx="155"
+              cy="58"
+              r="9"
+              fill="none"
+              stroke="#3fe3ff"
+              strokeWidth="2.5"
+            />
+            <line
+              x1="12"
+              y1="50"
+              x2="60"
+              y2="50"
+              stroke="#3fe3ff"
+              strokeWidth="2"
+              opacity="0.6"
+            />
+            <line
+              x1="12"
+              y1="44"
+              x2="45"
+              y2="44"
+              stroke="#3fe3ff"
+              strokeWidth="1.5"
+              opacity="0.4"
+            />
+          </svg>
+
+          <h1 className="ct-hero-title">COYTOY</h1>
+
+          <p
+            style={{
+              fontFamily: "'Orbitron', sans-serif",
+              fontWeight: 600,
+              fontSize: "12px",
+              letterSpacing: "7px",
+              color: "#3fe3ff",
+              textShadow: "0 0 10px rgba(63,227,255,0.7)",
+              marginTop: "14px",
+              marginBottom: "0",
+              textTransform: "uppercase",
+              animation: "ct-fade-up 0.9s 0.35s ease both",
+            }}
+          >
+            Fandom Collectibles
+          </p>
 
           <p
             className="ct-hero-sub"
             style={{
-              marginTop: "28px",
+              marginTop: "24px",
               fontSize: "clamp(15px, 2vw, 18px)",
               color: "#8993b8",
               maxWidth: "560px",
@@ -880,9 +964,9 @@ export default function Landing() {
             accent="#3fe3ff"
           />
 
-          {loadingProducts ? (
+          {loading ? (
             <LoadingSpinner />
-          ) : newProducts.length ? (
+          ) : (
             <div className="ct-product-grid">
               {newProducts.map((p, i) => (
                 <ProductCard
@@ -894,8 +978,6 @@ export default function Landing() {
                 />
               ))}
             </div>
-          ) : (
-            <EmptyProductsMessage />
           )}
 
           <div style={{ marginTop: "32px" }}>
@@ -990,9 +1072,9 @@ export default function Landing() {
             accent="#ff3fc7"
           />
 
-          {loadingProducts ? (
+          {loading ? (
             <LoadingSpinner />
-          ) : trendyProducts.length ? (
+          ) : (
             <div className="ct-product-grid">
               {trendyProducts.map((p, i) => (
                 <ProductCard
@@ -1004,8 +1086,6 @@ export default function Landing() {
                 />
               ))}
             </div>
-          ) : (
-            <EmptyProductsMessage />
           )}
 
           <div style={{ marginTop: "32px" }}>
@@ -1242,23 +1322,6 @@ function LoadingSpinner() {
       <span style={{ fontSize: "13px", letterSpacing: "1px" }}>
         Loading inventory…
       </span>
-    </div>
-  );
-}
-
-function EmptyProductsMessage() {
-  return (
-    <div
-      style={{
-        padding: "34px",
-        borderRadius: "16px",
-        border: "1px solid #1c2340",
-        background: "rgba(12,16,32,0.72)",
-        color: "#8993b8",
-        fontSize: "14px",
-      }}
-    >
-      No products available right now.
     </div>
   );
 }

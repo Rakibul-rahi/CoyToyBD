@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const CartContext = createContext(null);
 const CART_STORAGE_KEY = "coytoybd_cart";
@@ -7,14 +7,20 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState(() => {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      return savedCart ? JSON.parse(savedCart) : [];
+      const parsedCart = savedCart ? JSON.parse(savedCart) : [];
+
+      return Array.isArray(parsedCart) ? parsedCart : [];
     } catch {
       return [];
     }
   });
 
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch (error) {
+      console.error("Failed to save cart:", error);
+    }
   }, [cartItems]);
 
   const normalizeCartItem = (product) => {
@@ -27,13 +33,22 @@ export function CartProvider({ children }) {
       quantity: Number(product.quantity || 0),
       quantityInCart: Number(product.quantityInCart || 1),
       category: product.category || "N/A",
-      imageUrl: product.imageUrl || product.image || "",
+      imageUrl:
+        product.imageUrl ||
+        product.image ||
+        product.images?.[0] ||
+        "",
     };
   };
 
   const addToCart = (product) => {
     const newItem = normalizeCartItem(product);
     const availableStock = Number(newItem.quantity || 0);
+
+    if (!newItem.id) {
+      alert("Invalid product");
+      return;
+    }
 
     if (availableStock <= 0) {
       alert("This product is out of stock");
@@ -44,7 +59,9 @@ export function CartProvider({ children }) {
       const existing = prevItems.find((item) => item.id === newItem.id);
 
       if (existing) {
-        if (Number(existing.quantityInCart || 0) >= availableStock) {
+        const currentQuantity = Number(existing.quantityInCart || 0);
+
+        if (currentQuantity >= availableStock) {
           alert("You cannot add more than available stock");
           return prevItems;
         }
@@ -53,7 +70,7 @@ export function CartProvider({ children }) {
           item.id === newItem.id
             ? {
                 ...item,
-                quantityInCart: Number(item.quantityInCart || 0) + 1,
+                quantityInCart: currentQuantity + 1,
               }
             : item
         );
@@ -105,15 +122,27 @@ export function CartProvider({ children }) {
 
   const clearCart = () => {
     setCartItems([]);
+
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to clear cart from localStorage:", error);
+    }
   };
 
-  const cartCount = cartItems.reduce((total, item) => {
-    return total + Number(item.quantityInCart || 0);
-  }, 0);
+  const cartCount = useMemo(() => {
+    return cartItems.reduce((total, item) => {
+      return total + Number(item.quantityInCart || 0);
+    }, 0);
+  }, [cartItems]);
 
-  const cartTotal = cartItems.reduce((total, item) => {
-    return total + Number(item.price || 0) * Number(item.quantityInCart || 0);
-  }, 0);
+  const cartTotal = useMemo(() => {
+    return cartItems.reduce((total, item) => {
+      return (
+        total + Number(item.price || 0) * Number(item.quantityInCart || 0)
+      );
+    }, 0);
+  }, [cartItems]);
 
   return (
     <CartContext.Provider

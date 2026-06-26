@@ -4,8 +4,6 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase/firebaseConfig";
 import { useCart } from "../../context/CartContext";
 
-const WHATSAPP_NUMBER = "8801623098084";
-
 const FONT_LINK_ID = "coytoy-product-fonts";
 
 function useInjectFonts() {
@@ -166,26 +164,6 @@ export default function ProductDetails() {
     alert(`${product.name} added to cart`);
   };
 
-  const handleWhatsAppOrder = () => {
-    if (!product) return;
-
-    const message = `Hello CoyToyBD, I want to order this product:
-
-Product: ${product.name}
-Product ID: ${product.uid || product.id}
-Price: ${product.price} BDT
-Category: ${product.category || "N/A"}
-
-Please confirm availability.`;
-
-    const encodedMessage = encodeURIComponent(message);
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-  };
-
   if (loading) {
     return (
       <main
@@ -327,7 +305,6 @@ Please confirm availability.`;
               alignItems: "start",
             }}
           >
-            {/* Images */}
             <section>
               <div
                 style={{
@@ -448,7 +425,6 @@ Please confirm availability.`;
               )}
             </section>
 
-            {/* Details */}
             <section>
               <div
                 style={{
@@ -528,17 +504,18 @@ Please confirm availability.`;
                   {product.price} BDT
                 </h2>
 
-                {product.oldPrice && Number(product.oldPrice) > Number(product.price) && (
-                  <span
-                    style={{
-                      color: "#5b6390",
-                      fontSize: "16px",
-                      textDecoration: "line-through",
-                    }}
-                  >
-                    {product.oldPrice} BDT
-                  </span>
-                )}
+                {product.oldPrice &&
+                  Number(product.oldPrice) > Number(product.price) && (
+                    <span
+                      style={{
+                        color: "#5b6390",
+                        fontSize: "16px",
+                        textDecoration: "line-through",
+                      }}
+                    >
+                      {product.oldPrice} BDT
+                    </span>
+                  )}
               </div>
 
               <p
@@ -561,8 +538,11 @@ Please confirm availability.`;
                 }}
               >
                 <InfoBox label="Availability" value={stockInfo.label} />
-                <InfoBox label="Quantity Left" value={`${product.quantity || 0} pcs`} />
-                <InfoBox label="Ordering" value="WhatsApp" />
+                <InfoBox
+                  label="Quantity Left"
+                  value={`${product.quantity || 0} pcs`}
+                />
+                <InfoBox label="Ordering" value="Cart Checkout" />
               </div>
 
               <div
@@ -597,31 +577,6 @@ Please confirm availability.`;
                 >
                   {outOfStock ? "Out of Stock" : "Add to Cart"}
                 </button>
-
-                <button
-                  onClick={handleWhatsAppOrder}
-                  disabled={outOfStock}
-                  className="coytoy-product-action"
-                  style={{
-                    flex: 1,
-                    padding: "15px 18px",
-                    borderRadius: "14px",
-                    border: outOfStock
-                      ? "1px solid #1c2340"
-                      : "1px solid #25d366",
-                    background: outOfStock
-                      ? "transparent"
-                      : "rgba(37,211,102,0.12)",
-                    color: outOfStock ? "#5b6390" : "#25d366",
-                    fontSize: "14px",
-                    fontWeight: 800,
-                    fontFamily: "inherit",
-                    cursor: outOfStock ? "not-allowed" : "pointer",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  Order on WhatsApp
-                </button>
               </div>
 
               <div
@@ -652,9 +607,10 @@ Please confirm availability.`;
                     fontSize: "13.5px",
                   }}
                 >
-                  Add products to cart and checkout through WhatsApp. We will
-                  confirm availability, final price, and delivery details before
-                  processing the order.
+                  Add this product to your cart first. After reviewing all
+                  selected items in the cart, you can checkout through WhatsApp.
+                  We will confirm availability, final price, and delivery
+                  details before processing the order.
                 </p>
               </div>
             </section>

@@ -5,6 +5,7 @@ import { useCart } from "../../context/CartContext";
 
 /* ---------------------------------------------------------
    CoyToy — "Fandom Collectibles" cyberpunk shop page
+   Fixed equal product card sizes
 --------------------------------------------------------- */
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
@@ -61,6 +62,8 @@ const KEYFRAMES = `
   color: inherit;
   text-decoration: none;
   display: block;
+  width: 236px;
+  height: 370px;
 }
 
 .coytoy-search-wrap {
@@ -69,8 +72,23 @@ const KEYFRAMES = `
   min-width: 200px;
 }
 
+.coytoy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 236px));
+  gap: 22px;
+  align-items: stretch;
+  justify-content: center;
+}
+
 .coytoy-card {
   animation: coytoy-fade-up 0.5s ease both;
+  position: relative;
+  width: 236px;
+  height: 370px;
+  min-height: 370px;
+  border-radius: 16px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
 }
 
 .coytoy-card:hover {
@@ -88,6 +106,22 @@ const KEYFRAMES = `
 .coytoy-card:hover .coytoy-img {
   transform: scale(1.06);
   filter: saturate(1.15) brightness(1.05);
+}
+
+.coytoy-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 39px;
+}
+
+.coytoy-card-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 38px;
 }
 
 .coytoy-wordmark {
@@ -204,7 +238,18 @@ const KEYFRAMES = `
   }
 
   .coytoy-grid {
-    justify-content: center !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    justify-content: center;
+  }
+
+  .coytoy-card-link {
+    width: 100%;
+    height: 370px;
+  }
+
+  .coytoy-card {
+    width: 100%;
+    height: 370px;
   }
 }
 
@@ -214,14 +259,21 @@ const KEYFRAMES = `
     letter-spacing: 2px !important;
   }
 
-  .coytoy-grid > a {
-    width: 100% !important;
-    max-width: 320px !important;
+  .coytoy-grid {
+    grid-template-columns: 1fr;
   }
 
-  .coytoy-grid .coytoy-card {
+  .coytoy-card-link {
     width: 100% !important;
     max-width: 320px !important;
+    height: 370px;
+    margin-inline: auto;
+  }
+
+  .coytoy-card {
+    width: 100% !important;
+    max-width: 320px !important;
+    height: 370px;
   }
 
   .coytoy-toolbar {
@@ -802,15 +854,7 @@ export default function Shop() {
               </button>
             </div>
           ) : (
-            <div
-              className="coytoy-grid"
-              style={{
-                display: "flex",
-                gap: "22px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
-            >
+            <div className="coytoy-grid">
               {filteredProducts.map((product, i) => {
                 const stockStatus = getStockStatus(product.quantity);
                 const outOfStock = Number(product.quantity) <= 0;
@@ -822,21 +866,11 @@ export default function Shop() {
                     to={`/product/${product.id}`}
                     className="coytoy-card-link"
                     aria-label={`View details for ${product.name}`}
-                    style={{
-                      width: "min(236px, 100%)",
-                      flex: "1 1 236px",
-                      maxWidth: "236px",
-                    }}
                   >
                     <div
                       className="coytoy-card"
                       style={{
-                        position: "relative",
-                        width: "100%",
-                        borderRadius: "16px",
                         animationDelay: `${Math.min(i * 0.05, 0.4)}s`,
-                        transition: "transform 0.3s ease",
-                        cursor: "pointer",
                       }}
                     >
                       <div
@@ -873,6 +907,7 @@ export default function Shop() {
                             position: "relative",
                             width: "100%",
                             height: "160px",
+                            minHeight: "160px",
                             overflow: "hidden",
                             background: "#070a14",
                           }}
@@ -959,9 +994,11 @@ export default function Shop() {
                             display: "flex",
                             flexDirection: "column",
                             flex: 1,
+                            minHeight: 0,
                           }}
                         >
                           <h3
+                            className="coytoy-card-title"
                             style={{
                               margin: "0 0 6px",
                               fontSize: "15px",
@@ -970,32 +1007,34 @@ export default function Shop() {
                               lineHeight: 1.3,
                             }}
                           >
-                            {product.name}
+                            {product.name || "Unnamed Product"}
                           </h3>
 
-                          {product.description && (
-                            <p
-                              style={{
-                                margin: "0 0 12px",
-                                fontSize: "12.5px",
-                                color: "#8993b8",
-                                lineHeight: 1.5,
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                              }}
-                            >
-                              {product.description}
-                            </p>
-                          )}
+                          <p
+                            className="coytoy-card-desc"
+                            style={{
+                              margin: "0 0 12px",
+                              fontSize: "12.5px",
+                              color: "#8993b8",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {product.description || "No description available"}
+                          </p>
 
-                          <div style={{ marginTop: "auto" }}>
+                          <div
+                            style={{
+                              marginTop: "auto",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
                             <div
                               style={{
                                 display: "flex",
                                 alignItems: "baseline",
                                 justifyContent: "space-between",
+                                gap: "10px",
                                 marginBottom: "10px",
                               }}
                             >
@@ -1007,13 +1046,18 @@ export default function Shop() {
                                   color: "#ff3fc7",
                                   textShadow:
                                     "0 0 10px rgba(255,63,199,0.5)",
+                                  whiteSpace: "nowrap",
                                 }}
                               >
                                 {product.price} BDT
                               </span>
 
                               <span
-                                style={{ fontSize: "11px", color: "#5b6390" }}
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#5b6390",
+                                  whiteSpace: "nowrap",
+                                }}
                               >
                                 {product.quantity} left
                               </span>
@@ -1029,6 +1073,7 @@ export default function Shop() {
                                 letterSpacing: "0.4px",
                                 color: stockStatus.color,
                                 marginBottom: "12px",
+                                minHeight: "15px",
                               }}
                             >
                               <span
