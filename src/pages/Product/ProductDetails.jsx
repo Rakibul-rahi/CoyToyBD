@@ -164,6 +164,10 @@ export default function ProductDetails() {
     alert(`${product.name} added to cart`);
   };
 
+  const handleCheckout = () => {
+    navigate("/cart");
+  };
+
   if (loading) {
     return (
       <main
@@ -576,6 +580,26 @@ export default function ProductDetails() {
                   }}
                 >
                   {outOfStock ? "Out of Stock" : "Add to Cart"}
+                </button>
+
+                <button
+                  onClick={handleCheckout}
+                  className="coytoy-product-action"
+                  style={{
+                    flex: 1,
+                    padding: "15px 18px",
+                    borderRadius: "14px",
+                    border: "1px solid #ff3fc7",
+                    background: "rgba(255,63,199,0.12)",
+                    color: "#ff3fc7",
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  Checkout / Go to Cart
                 </button>
               </div>
 
