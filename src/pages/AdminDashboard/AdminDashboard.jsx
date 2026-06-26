@@ -9,6 +9,11 @@ import {
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
 const MAX_IMAGES = 4;
+const MAX_IMAGE_SIZE_MB = 3;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
 
 function useInjectFonts() {
   useEffect(() => {
@@ -120,6 +125,31 @@ const KEYFRAMES = `
   }
 }
 `;
+
+function isAllowedImageFile(file) {
+  const fileName = file.name.toLowerCase();
+  const hasAllowedExtension = ALLOWED_IMAGE_EXTENSIONS.some((ext) =>
+    fileName.endsWith(ext)
+  );
+
+  return ALLOWED_IMAGE_TYPES.includes(file.type) && hasAllowedExtension;
+}
+
+function validateImageFile(file) {
+  if (!file) {
+    return "No image selected.";
+  }
+
+  if (!isAllowedImageFile(file)) {
+    return `${file.name} is not allowed. Only JPG, JPEG, PNG, and WEBP images are allowed.`;
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    return `${file.name} is too large. Maximum image size is ${MAX_IMAGE_SIZE_MB} MB.`;
+  }
+
+  return "";
+}
 
 export default function AdminDashboard() {
   useInjectFonts();
@@ -277,13 +307,48 @@ export default function AdminDashboard() {
 
   const handleImageChange = (e) => {
     const selectedFiles = Array.from(e.target.files || []);
-    const allowedFiles = selectedFiles.slice(0, MAX_IMAGES);
 
-    if (selectedFiles.length > MAX_IMAGES) {
-      alert(`You can upload maximum ${MAX_IMAGES} images per product.`);
+    if (selectedFiles.length === 0) return;
+
+    const errors = [];
+    const validFiles = [];
+
+    selectedFiles.forEach((file) => {
+      const error = validateImageFile(file);
+
+      if (error) {
+        errors.push(error);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    const availableSlots = editingId
+      ? Math.max(MAX_IMAGES - existingImages.length, 0)
+      : MAX_IMAGES;
+
+    if (availableSlots <= 0) {
+      alert(
+        `You already have ${MAX_IMAGES} images. Remove an existing image before adding a new one.`
+      );
+      e.target.value = "";
+      return;
+    }
+
+    const allowedFiles = validFiles.slice(0, availableSlots);
+
+    if (selectedFiles.length > availableSlots || validFiles.length > availableSlots) {
+      errors.push(
+        `You can upload maximum ${MAX_IMAGES} images per product. You have ${availableSlots} slot(s) available.`
+      );
+    }
+
+    if (errors.length > 0) {
+      alert(errors.join("\n\n"));
     }
 
     setImageFiles(allowedFiles);
+    e.target.value = "";
   };
 
   const removeSelectedImage = (indexToRemove) => {
@@ -311,6 +376,20 @@ export default function AdminDashboard() {
 
     if (editingId && existingImages.length === 0 && imageFiles.length === 0) {
       alert("Please keep or upload at least 1 product image");
+      return;
+    }
+
+    const imageValidationErrors = imageFiles
+      .map((file) => validateImageFile(file))
+      .filter(Boolean);
+
+    if (imageValidationErrors.length > 0) {
+      alert(imageValidationErrors.join("\n\n"));
+      return;
+    }
+
+    if (editingId && existingImages.length + imageFiles.length > MAX_IMAGES) {
+      alert(`You can keep/upload maximum ${MAX_IMAGES} images per product.`);
       return;
     }
 
@@ -388,7 +467,7 @@ export default function AdminDashboard() {
       style={{
         minHeight: "100vh",
         background:
-          "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,63,199,0.12), transparent), radial-gradient(ellipse 60% 40% at 80% 10%, rgba(63,227,255,0.10), transparent), #06080f",
+          "radial-gradient(ellipse 80% 45% at 20% -10%, rgba(245,158,11,0.13), transparent), radial-gradient(ellipse 65% 45% at 90% 5%, rgba(59,130,246,0.12), transparent), linear-gradient(135deg, #07111f 0%, #0f172a 45%, #111827 100%)",
         fontFamily: "'Inter', system-ui, sans-serif",
         color: "#eef1fb",
         position: "relative",
@@ -435,7 +514,7 @@ export default function AdminDashboard() {
           className="coytoy-admin-header"
           style={{
             padding: "56px 32px 36px",
-            borderBottom: "1px solid #1c2340",
+            borderBottom: "1px solid rgba(245,158,11,0.22)",
             textAlign: "center",
           }}
         >
@@ -448,7 +527,7 @@ export default function AdminDashboard() {
               fontWeight: 700,
               margin: "0 0 12px",
               textTransform: "uppercase",
-              textShadow: "0 0 10px rgba(63,227,255,0.7)",
+              textShadow: "0 0 10px rgba(245,158,11,0.45)",
             }}
           >
             Inventory Control
@@ -464,7 +543,7 @@ export default function AdminDashboard() {
               margin: 0,
               color: "#ff3fc7",
               textShadow:
-                "0 0 8px rgba(255,63,199,0.9), 0 0 24px rgba(255,63,199,0.5)",
+                "0 0 8px rgba(96,165,250,0.75), 0 0 24px rgba(59,130,246,0.35)",
             }}
           >
             ADMIN DASHBOARD
@@ -480,7 +559,8 @@ export default function AdminDashboard() {
             }}
           >
             Add, update, and manage CoyToy products with up to 4 images per
-            product.
+            product. Each image must be JPG, JPEG, PNG, or WEBP and under{" "}
+            {MAX_IMAGE_SIZE_MB} MB.
           </p>
         </header>
 
@@ -547,8 +627,8 @@ export default function AdminDashboard() {
               onSubmit={handleSubmit}
               className="coytoy-admin-panel coytoy-admin-form"
               style={{
-                background: "rgba(15,20,38,0.72)",
-                border: "1px solid #1c2340",
+                background: "rgba(15,23,42,0.82)",
+                border: "1px solid rgba(148,163,184,0.16)",
                 borderRadius: "18px",
                 padding: "20px",
                 backdropFilter: "blur(10px)",
@@ -782,14 +862,15 @@ export default function AdminDashboard() {
                           color: "#5b6390",
                         }}
                       >
-                        Select 1 to 4 JPG, PNG, or WEBP files
+                        Select 1 to 4 JPG, JPEG, PNG, or WEBP files. Max{" "}
+                        {MAX_IMAGE_SIZE_MB} MB each.
                       </p>
                     </div>
                   )}
 
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                     multiple
                     onChange={handleImageChange}
                     style={{ display: "none" }}
@@ -864,8 +945,8 @@ export default function AdminDashboard() {
             <section
               className="coytoy-admin-panel"
               style={{
-                background: "rgba(15,20,38,0.55)",
-                border: "1px solid #1c2340",
+                background: "rgba(17,24,39,0.72)",
+                border: "1px solid rgba(148,163,184,0.16)",
                 borderRadius: "18px",
                 padding: "20px",
                 backdropFilter: "blur(10px)",
@@ -1014,8 +1095,8 @@ export default function AdminDashboard() {
                           style={{
                             position: "relative",
                             zIndex: 1,
-                            background: "#0c1020",
-                            border: "1px solid #1c2340",
+                            background: "#101827",
+                            border: "1px solid rgba(148,163,184,0.16)",
                             borderRadius: "16px",
                             overflow: "hidden",
                             height: "100%",

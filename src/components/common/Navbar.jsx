@@ -4,7 +4,7 @@ import { signOut } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../services/firebase/firebaseConfig";
 import { useCart } from "../../context/CartContext";
-
+import navbarLogo from "../../assets/navbar.png";
 const ADMIN_EMAIL = "admin@coytoybd.com";
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
@@ -61,8 +61,13 @@ function ensureNavStylesInjected() {
 }
 
 .coytoy-brand-logo {
-  filter: drop-shadow(0 0 6px #3fe3ff)
-          drop-shadow(0 0 10px rgba(63,227,255,0.5));
+  width: 72px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  filter: drop-shadow(0 0 7px rgba(255,63,199,0.65))
+          drop-shadow(0 0 12px rgba(255,63,199,0.35));
 }
 
 .coytoy-brand-text {
@@ -247,9 +252,9 @@ function ensureNavStylesInjected() {
   }
 
   .coytoy-brand-logo {
-    width: 26px;
-    height: 16px;
-  }
+  width: 52px;
+  height: 30px;
+}
 
   .coytoy-brand-text {
     font-size: 16px;
@@ -352,37 +357,11 @@ function CartIcon({ size = 23 }) {
 function BrandLogo() {
   return (
     <>
-      <svg
+      <img
+        src={navbarLogo}
+        alt="CoyToy"
         className="coytoy-brand-logo"
-        width="30"
-        height="18"
-        viewBox="0 0 200 80"
-        aria-hidden="true"
-      >
-        <path
-          d="M10 58 Q40 56 55 40 Q72 22 95 18 L150 18 Q170 18 178 36 L185 36 Q192 36 192 44 L192 54 Q192 58 186 58 L20 58 Q10 58 10 58 Z"
-          fill="none"
-          stroke="#3fe3ff"
-          strokeWidth="4"
-          strokeLinejoin="round"
-        />
-        <circle
-          cx="48"
-          cy="58"
-          r="9"
-          fill="none"
-          stroke="#3fe3ff"
-          strokeWidth="4"
-        />
-        <circle
-          cx="155"
-          cy="58"
-          r="9"
-          fill="none"
-          stroke="#3fe3ff"
-          strokeWidth="4"
-        />
-      </svg>
+      />
 
       <span className="coytoy-brand-text">COYTOY</span>
     </>

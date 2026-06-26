@@ -203,25 +203,35 @@ export default function Cart() {
 
   const isPhoneValid = /^\d{11}$/.test(buyerInfo.phone);
 
-const isBuyerInfoComplete =
-  buyerInfo.name.trim() &&
-  isPhoneValid &&
-  buyerInfo.address.trim();
+  const isBuyerInfoComplete =
+    buyerInfo.name.trim() && isPhoneValid && buyerInfo.address.trim();
 
   const handleBuyerChange = (e) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  const finalValue =
-    name === "phone" ? value.replace(/\D/g, "").slice(0, 11) : value;
+    const finalValue =
+      name === "phone" ? value.replace(/\D/g, "").slice(0, 11) : value;
 
-  setBuyerInfo((prev) => ({
-    ...prev,
-    [name]: finalValue,
-  }));
-};
+    setBuyerInfo((prev) => ({
+      ...prev,
+      [name]: finalValue,
+    }));
+  };
 
   const formatMoney = (amount) => {
     return `${Number(amount || 0).toLocaleString("en-BD")} BDT`;
+  };
+
+  const resetBuyerInfo = () => {
+    setBuyerInfo({
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+      notes: "",
+    });
+
+    setShowBuyerForm(false);
   };
 
   const checkoutOnWhatsApp = () => {
@@ -231,7 +241,7 @@ const isBuyerInfoComplete =
     }
 
     if (!isBuyerInfoComplete) {
-      alert("Please fill in your name, phone number, and address.");
+      alert("Please fill in your name, valid 11-digit phone number, and address.");
       return;
     }
 
@@ -281,6 +291,11 @@ Please confirm availability and delivery details.`;
     )}`;
 
     window.open(url, "_blank", "noopener,noreferrer");
+
+    clearCart();
+    resetBuyerInfo();
+
+    alert("Order message opened in WhatsApp. Your cart has been cleared.");
   };
 
   return (
@@ -373,7 +388,7 @@ Please confirm availability and delivery details.`;
               }}
             >
               <section style={{ display: "grid", gap: "16px" }}>
-                {cartItems.map((item, index) => {
+                {cartItems.map((item) => {
                   const quantityInCart = Number(item.quantityInCart || 0);
                   const availableQuantity = Number(item.quantity || 0);
                   const subtotal = Number(item.price || 0) * quantityInCart;
@@ -397,19 +412,39 @@ Please confirm availability and delivery details.`;
                         backdropFilter: "blur(10px)",
                       }}
                     >
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="coytoy-cart-image"
-                        style={{
-                          width: "100%",
-                          height: "112px",
-                          objectFit: "cover",
-                          borderRadius: "13px",
-                          border: "1px solid #1c2340",
-                          background: "#070a14",
-                        }}
-                      />
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="coytoy-cart-image"
+                          style={{
+                            width: "100%",
+                            height: "112px",
+                            objectFit: "cover",
+                            borderRadius: "13px",
+                            border: "1px solid #1c2340",
+                            background: "#070a14",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="coytoy-cart-image"
+                          style={{
+                            width: "100%",
+                            height: "112px",
+                            borderRadius: "13px",
+                            border: "1px solid #1c2340",
+                            background: "#070a14",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#5b6390",
+                            fontSize: "12px",
+                          }}
+                        >
+                          No Image
+                        </div>
+                      )}
 
                       <div>
                         <p
@@ -664,7 +699,8 @@ Please confirm availability and delivery details.`;
                       textAlign: "center",
                     }}
                   >
-                    Fill name, phone number, and address to continue.
+                    Fill name, valid 11-digit phone number, and address to
+                    continue.
                   </p>
                 )}
 
@@ -751,6 +787,8 @@ function BuyerInfoForm({ buyerInfo, handleBuyerChange }) {
         value={buyerInfo.phone}
         onChange={handleBuyerChange}
         style={inputStyle}
+        inputMode="numeric"
+        maxLength={11}
       />
 
       <input
