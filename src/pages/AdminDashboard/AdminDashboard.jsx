@@ -151,6 +151,22 @@ function validateImageFile(file) {
   return "";
 }
 
+function toPositiveInteger(value) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue <= 0) {
+    return null;
+  }
+  return numberValue;
+}
+
+function toPositivePrice(value) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue) || numberValue <= 0) {
+    return null;
+  }
+  return numberValue;
+}
+
 export default function AdminDashboard() {
   useInjectFonts();
 
@@ -257,7 +273,7 @@ export default function AdminDashboard() {
     stockFilter === "low"
       ? "Products with quantity between 1 and 5 will appear here."
       : stockFilter === "out"
-      ? "Products with quantity 0 or below will appear here."
+      ? "Products with quantity 0 or below will appear here. New products cannot be saved with 0 quantity."
       : "Add your first CoyToy product from the form.";
 
   const formTitle = editingId ? "Edit Product" : "Add New Product";
@@ -337,7 +353,10 @@ export default function AdminDashboard() {
 
     const allowedFiles = validFiles.slice(0, availableSlots);
 
-    if (selectedFiles.length > availableSlots || validFiles.length > availableSlots) {
+    if (
+      selectedFiles.length > availableSlots ||
+      validFiles.length > availableSlots
+    ) {
       errors.push(
         `You can upload maximum ${MAX_IMAGES} images per product. You have ${availableSlots} slot(s) available.`
       );
@@ -361,21 +380,135 @@ export default function AdminDashboard() {
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handlePriceChange = (e) => {
+    const value = e.target.value;
 
-    if (!name || !category || !price || quantity === "") {
-      alert("Please fill name, category, price, and quantity");
+    if (value === "") {
+      setPrice("");
       return;
+    }
+
+    if (Number(value) < 0) return;
+
+    setPrice(value);
+  };
+
+  const handleQuantityChange = (e) => {
+    const value = e.target.value;
+
+    if (value === "") {
+      setQuantity("");
+      return;
+    }
+
+    if (!/^\d+$/.test(value)) return;
+    if (Number(value) < 0) return;
+
+    setQuantity(value);
+  };
+
+  const validateProductForm = () => {
+    const trimmedName = name.trim();
+    const trimmedCategory = category.trim();
+    const trimmedDescription = description.trim();
+
+    const numericPrice = toPositivePrice(price);
+    const numericQuantity = toPositiveInteger(quantity);
+
+    if (!trimmedName || !trimmedCategory || price === "" || quantity === "") {
+      return {
+        ok: false,
+        message: "Please fill name, category, price, and quantity.",
+      };
+    }
+
+    if (trimmedName.length > 100) {
+      return {
+        ok: false,
+        message: "Product name must be 100 characters or less.",
+      };
+    }
+
+    if (trimmedDescription.length > 1000) {
+      return {
+        ok: false,
+        message: "Description must be 1000 characters or less.",
+      };
+    }
+
+    if (trimmedCategory.length > 50) {
+      return {
+        ok: false,
+        message: "Category must be 50 characters or less.",
+      };
+    }
+
+    if (numericPrice === null) {
+      return {
+        ok: false,
+        message: "Price must be greater than 0.",
+      };
+    }
+
+    if (numericPrice > 100000) {
+      return {
+        ok: false,
+        message: "Price cannot be more than 100000.",
+      };
+    }
+
+    if (numericQuantity === null) {
+      return {
+        ok: false,
+        message: "Quantity must be a whole number greater than 0.",
+      };
+    }
+
+    if (numericQuantity > 10000) {
+      return {
+        ok: false,
+        message: "Quantity cannot be more than 10000.",
+      };
     }
 
     if (!editingId && imageFiles.length === 0) {
-      alert("Please select at least 1 product image");
-      return;
+      return {
+        ok: false,
+        message: "Please select at least 1 product image.",
+      };
     }
 
     if (editingId && existingImages.length === 0 && imageFiles.length === 0) {
-      alert("Please keep or upload at least 1 product image");
+      return {
+        ok: false,
+        message: "Please keep or upload at least 1 product image.",
+      };
+    }
+
+    if (editingId && existingImages.length + imageFiles.length > MAX_IMAGES) {
+      return {
+        ok: false,
+        message: `You can keep/upload maximum ${MAX_IMAGES} images per product.`,
+      };
+    }
+
+    return {
+      ok: true,
+      numericPrice,
+      numericQuantity,
+      trimmedName,
+      trimmedCategory,
+      trimmedDescription,
+    };
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const formValidation = validateProductForm();
+
+    if (!formValidation.ok) {
+      alert(formValidation.message);
       return;
     }
 
@@ -385,11 +518,6 @@ export default function AdminDashboard() {
 
     if (imageValidationErrors.length > 0) {
       alert(imageValidationErrors.join("\n\n"));
-      return;
-    }
-
-    if (editingId && existingImages.length + imageFiles.length > MAX_IMAGES) {
-      alert(`You can keep/upload maximum ${MAX_IMAGES} images per product.`);
       return;
     }
 
@@ -407,14 +535,19 @@ export default function AdminDashboard() {
         ? [...existingImages, ...uploadedImageUrls].slice(0, MAX_IMAGES)
         : uploadedImageUrls.slice(0, MAX_IMAGES);
 
+      if (finalImages.length === 0) {
+        alert("Please keep or upload at least 1 product image.");
+        return;
+      }
+
       const productData = {
-        name: name.trim(),
-        category,
-        price: Number(price),
-        quantity: Number(quantity),
-        description: description.trim(),
+        name: formValidation.trimmedName,
+        description: formValidation.trimmedDescription,
+        category: formValidation.trimmedCategory,
+        price: formValidation.numericPrice,
+        quantity: formValidation.numericQuantity,
         images: finalImages,
-        imageUrl: finalImages[0] || "",
+        imageUrl: finalImages[0],
       };
 
       if (editingId) {
@@ -693,6 +826,7 @@ export default function AdminDashboard() {
                   className="coytoy-admin-input"
                   style={inputStyle}
                   type="text"
+                  maxLength={100}
                   placeholder="Example: Cyber Racing Car"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -731,9 +865,11 @@ export default function AdminDashboard() {
                     className="coytoy-admin-input"
                     style={inputStyle}
                     type="number"
+                    min="1"
+                    step="1"
                     placeholder="BDT"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={handlePriceChange}
                   />
                 </FormGroup>
 
@@ -742,9 +878,11 @@ export default function AdminDashboard() {
                     className="coytoy-admin-input"
                     style={inputStyle}
                     type="number"
+                    min="1"
+                    step="1"
                     placeholder="Stock"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={handleQuantityChange}
                   />
                 </FormGroup>
               </div>
@@ -758,6 +896,7 @@ export default function AdminDashboard() {
                     resize: "vertical",
                     lineHeight: 1.5,
                   }}
+                  maxLength={1000}
                   placeholder="Write a short product description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -1399,9 +1538,7 @@ function StatCard({ title, value, color, active = false, onClick }) {
         border: active ? `1px solid ${color}` : "1px solid #1c2340",
         borderRadius: "16px",
         padding: "17px",
-        boxShadow: active
-          ? `0 0 26px ${color}44`
-          : `0 0 22px ${color}22`,
+        boxShadow: active ? `0 0 26px ${color}44` : `0 0 22px ${color}22`,
         cursor: "pointer",
         fontFamily: "'Inter', system-ui, sans-serif",
         transition: "all 0.2s ease",
