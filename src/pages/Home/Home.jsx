@@ -296,7 +296,7 @@ const KEYFRAMES = `
 `;
 
 function getStockStatus(quantity) {
-  const qty = Number(quantity);
+  const qty = Number(quantity || 0);
 
   if (qty <= 0) {
     return {
@@ -308,7 +308,7 @@ function getStockStatus(quantity) {
 
   if (qty <= 5) {
     return {
-      text: "Low Stock",
+      text: "Limited Stock",
       color: "#ffb14e",
       glow: "rgba(255,177,78,0.5)",
     };
@@ -356,8 +356,9 @@ function StarsBg() {
 }
 
 function ProductCard({ product, index, onAdd, onOpen }) {
-  const stockStatus = getStockStatus(product.quantity);
-  const outOfStock = Number(product.quantity) <= 0;
+  const quantity = Number(product.quantity || 0);
+  const stockStatus = getStockStatus(quantity);
+  const outOfStock = quantity <= 0;
   const productImage = getProductImage(product);
 
   const handleOpen = () => {
@@ -570,7 +571,7 @@ function ProductCard({ product, index, onAdd, onOpen }) {
                   whiteSpace: "nowrap",
                 }}
               >
-                {product.quantity} left
+                {quantity} left
               </span>
             </div>
 
@@ -662,24 +663,44 @@ export default function Landing() {
   const { products, loadingProducts } = useProducts();
 
   const newProducts = useMemo(() => {
-    if (!products.length) return [];
-    return [...products].slice(-5).reverse();
-  }, [products]);
+  if (!products.length) return [];
+
+  return products
+    .filter((product) => product.status !== "inactive")
+    .slice(0, 5);
+}, [products]);
 
   const trendyProducts = useMemo(() => {
-    if (!products.length) return [];
-    return shuffle(products).slice(0, 5);
-  }, [products]);
+  if (!products.length) return [];
+
+  const availableProducts = products.filter(
+    (product) =>
+      product.status !== "inactive" && Number(product.quantity || 0) > 0
+  );
+
+  return shuffle(availableProducts).slice(0, 5);
+}, [products]);
 
   const handleAddToCart = (product) => {
-    if (Number(product.quantity) <= 0) {
-      alert("This product is out of stock");
-      return;
-    }
+  const quantity = Number(product.quantity || 0);
 
-    addToCart(product);
-    alert(`${product.name} added to cart!`);
-  };
+  if (quantity <= 0) {
+    alert("This product is out of stock");
+    return;
+  }
+
+  if (product.status === "inactive") {
+    alert("This product is not available right now");
+    return;
+  }
+
+  addToCart({
+    ...product,
+    quantity,
+  });
+
+  alert(`${product.name} added to cart!`);
+};
 
   const handleOpenProduct = (product) => {
     if (!product?.id) return;

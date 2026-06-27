@@ -348,7 +348,7 @@ export default function Shop() {
 
     if (qty <= 5) {
       return {
-        text: "Low Stock",
+        text: "Limited Stock",
         color: "#ffb14e",
         glow: "rgba(255,177,78,0.5)",
       };
