@@ -137,7 +137,7 @@ export default function ProductDetails() {
 
     if (quantity <= 5) {
       return {
-        label: "Low Stock",
+        label: "Limited Stock",
         color: "#ffb14e",
         bg: "rgba(255,177,78,0.08)",
         border: "rgba(255,177,78,0.35)",

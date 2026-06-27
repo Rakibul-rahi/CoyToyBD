@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { uploadImageToCloudinary } from "../../services/cloudinary/cloudinaryService";
 import {
   addProduct,
@@ -151,9 +152,9 @@ function validateImageFile(file) {
   return "";
 }
 
-function toPositiveInteger(value) {
+function toNonNegativeInteger(value) {
   const numberValue = Number(value);
-  if (!Number.isInteger(numberValue) || numberValue <= 0) {
+  if (!Number.isInteger(numberValue) || numberValue < 0) {
     return null;
   }
   return numberValue;
@@ -273,7 +274,7 @@ export default function AdminDashboard() {
     stockFilter === "low"
       ? "Products with quantity between 1 and 5 will appear here."
       : stockFilter === "out"
-      ? "Products with quantity 0 or below will appear here. New products cannot be saved with 0 quantity."
+      ? "Products with quantity 0 will appear here."
       : "Add your first CoyToy product from the form.";
 
   const formTitle = editingId ? "Edit Product" : "Add New Product";
@@ -413,7 +414,7 @@ export default function AdminDashboard() {
     const trimmedDescription = description.trim();
 
     const numericPrice = toPositivePrice(price);
-    const numericQuantity = toPositiveInteger(quantity);
+    const numericQuantity = toNonNegativeInteger(quantity);
 
     if (!trimmedName || !trimmedCategory || price === "" || quantity === "") {
       return {
@@ -460,7 +461,7 @@ export default function AdminDashboard() {
     if (numericQuantity === null) {
       return {
         ok: false,
-        message: "Quantity must be a whole number greater than 0.",
+       message: "Quantity must be a whole number 0 or greater.",
       };
     }
 
@@ -548,7 +549,9 @@ export default function AdminDashboard() {
         quantity: formValidation.numericQuantity,
         images: finalImages,
         imageUrl: finalImages[0],
-      };
+        imagePublicId: "",
+        status: "active",
+};
 
       if (editingId) {
         await updateProduct(editingId, productData);
@@ -695,6 +698,38 @@ export default function AdminDashboard() {
             product. Each image must be JPG, JPEG, PNG, or WEBP and under{" "}
             {MAX_IMAGE_SIZE_MB} MB.
           </p>
+          <div
+  style={{
+    marginTop: "22px",
+    display: "flex",
+    justifyContent: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  }}
+>
+  <Link
+    to="/admin-orders"
+    className="coytoy-admin-btn"
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      padding: "12px 18px",
+      borderRadius: "12px",
+      border: "1px solid #3fe3ff",
+      background:
+        "linear-gradient(135deg, rgba(63,227,255,0.18), rgba(255,63,199,0.1))",
+      color: "#3fe3ff",
+      fontSize: "14px",
+      fontWeight: 900,
+      textDecoration: "none",
+      boxShadow: "0 0 22px rgba(63,227,255,0.18)",
+    }}
+  >
+    View Orders
+  </Link>
+</div>
         </header>
 
         <main
@@ -878,7 +913,7 @@ export default function AdminDashboard() {
                     className="coytoy-admin-input"
                     style={inputStyle}
                     type="number"
-                    min="1"
+                    min="0"
                     step="1"
                     placeholder="Stock"
                     value={quantity}

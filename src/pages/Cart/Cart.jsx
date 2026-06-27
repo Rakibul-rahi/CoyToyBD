@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
 
@@ -41,14 +41,12 @@ const STYLES = `
 }
 
 .coytoy-cart-btn,
-.coytoy-cart-link,
-.coytoy-buyer-input {
+.coytoy-cart-link {
   transition: all 0.2s ease;
 }
 
 .coytoy-cart-btn:focus-visible,
-.coytoy-cart-link:focus-visible,
-.coytoy-buyer-input:focus-visible {
+.coytoy-cart-link:focus-visible {
   outline: 2px solid #3fe3ff;
   outline-offset: 2px;
 }
@@ -60,11 +58,6 @@ const STYLES = `
 .coytoy-cart-qty-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed !important;
-}
-
-.coytoy-buyer-input:focus {
-  border-color: #3fe3ff !important;
-  box-shadow: 0 0 18px rgba(63,227,255,0.14);
 }
 
 @keyframes coytoy-fade-up {
@@ -173,6 +166,8 @@ const STYLES = `
 export default function Cart() {
   useInjectFonts();
 
+  const navigate = useNavigate();
+
   const {
     cartItems,
     increaseQuantity,
@@ -180,18 +175,6 @@ export default function Cart() {
     removeFromCart,
     clearCart,
   } = useCart();
-
-  const [showBuyerForm, setShowBuyerForm] = useState(false);
-
-  const [buyerInfo, setBuyerInfo] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    notes: "",
-  });
-
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER;
 
   const totalPrice = cartItems.reduce((total, item) => {
     return total + Number(item.price || 0) * Number(item.quantityInCart || 0);
@@ -201,101 +184,17 @@ export default function Cart() {
     return total + Number(item.quantityInCart || 0);
   }, 0);
 
-  const isPhoneValid = /^\d{11}$/.test(buyerInfo.phone);
-
-  const isBuyerInfoComplete =
-    buyerInfo.name.trim() && isPhoneValid && buyerInfo.address.trim();
-
-  const handleBuyerChange = (e) => {
-    const { name, value } = e.target;
-
-    const finalValue =
-      name === "phone" ? value.replace(/\D/g, "").slice(0, 11) : value;
-
-    setBuyerInfo((prev) => ({
-      ...prev,
-      [name]: finalValue,
-    }));
-  };
-
   const formatMoney = (amount) => {
     return `${Number(amount || 0).toLocaleString("en-BD")} BDT`;
   };
 
-  const resetBuyerInfo = () => {
-    setBuyerInfo({
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
-      notes: "",
-    });
-
-    setShowBuyerForm(false);
-  };
-
-  const checkoutOnWhatsApp = () => {
+  const handleCheckout = () => {
     if (cartItems.length === 0) {
-      alert("Your cart is empty");
+      alert("Your cart is empty.");
       return;
     }
 
-    if (!isBuyerInfoComplete) {
-      alert("Please fill in your name, valid 11-digit phone number, and address.");
-      return;
-    }
-
-    if (!whatsappNumber) {
-      alert(
-        "WhatsApp number is missing. Please set VITE_WHATSAPP_NUMBER in your .env file."
-      );
-      return;
-    }
-
-    const productLines = cartItems
-      .map((item, index) => {
-        const itemSubtotal =
-          Number(item.price || 0) * Number(item.quantityInCart || 0);
-
-        return `${index + 1}. ${item.name}
-   Product ID: ${item.uid || item.id || "N/A"}
-   Category: ${item.category || "N/A"}
-   Quantity: ${item.quantityInCart}
-   Unit Price: ${formatMoney(item.price)}
-   Subtotal: ${formatMoney(itemSubtotal)}`;
-      })
-      .join("\n\n");
-
-    const message = `Hello CoyToy,
-
-I want to place an order.
-
-Buyer Information:
-Name: ${buyerInfo.name}
-Phone: ${buyerInfo.phone}
-Email: ${buyerInfo.email || "Not provided"}
-Address: ${buyerInfo.address}
-Delivery Notes: ${buyerInfo.notes || "None"}
-
-Order Details:
-
-${productLines}
-
-Total Items: ${totalItems}
-Total Price: ${formatMoney(totalPrice)}
-
-Please confirm availability and delivery details.`;
-
-    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      message
-    )}`;
-
-    window.open(url, "_blank", "noopener,noreferrer");
-
-    clearCart();
-    resetBuyerInfo();
-
-    alert("Order message opened in WhatsApp. Your cart has been cleared.");
+    navigate("/checkout");
   };
 
   return (
@@ -362,8 +261,7 @@ Please confirm availability and delivery details.`;
               lineHeight: 1.6,
             }}
           >
-            Review your selected toys before confirming the order through
-            WhatsApp.
+            Review your selected toys before continuing to secure checkout.
           </p>
         </header>
 
@@ -662,47 +560,13 @@ Please confirm availability and delivery details.`;
                   </strong>
                 </div>
 
-                {!showBuyerForm && (
-                  <button
-                    onClick={() => setShowBuyerForm(true)}
-                    className="coytoy-cart-btn"
-                    style={mainButtonStyle}
-                  >
-                    Checkout
-                  </button>
-                )}
-
-                {showBuyerForm && (
-                  <BuyerInfoForm
-                    buyerInfo={buyerInfo}
-                    handleBuyerChange={handleBuyerChange}
-                  />
-                )}
-
-                {showBuyerForm && isBuyerInfoComplete && (
-                  <button
-                    onClick={checkoutOnWhatsApp}
-                    className="coytoy-cart-btn"
-                    style={whatsappButtonStyle}
-                  >
-                    Checkout on WhatsApp
-                  </button>
-                )}
-
-                {showBuyerForm && !isBuyerInfoComplete && (
-                  <p
-                    style={{
-                      color: "#ffb14e",
-                      fontSize: "12px",
-                      lineHeight: 1.5,
-                      margin: "10px 0 0",
-                      textAlign: "center",
-                    }}
-                  >
-                    Fill name, valid 11-digit phone number, and address to
-                    continue.
-                  </p>
-                )}
+                <button
+                  onClick={handleCheckout}
+                  className="coytoy-cart-btn"
+                  style={mainButtonStyle}
+                >
+                  Proceed to Checkout
+                </button>
 
                 <button
                   onClick={clearCart}
@@ -738,88 +602,24 @@ Please confirm availability and delivery details.`;
                 >
                   Continue Shopping
                 </Link>
+
+                <p
+                  style={{
+                    margin: "16px 0 0",
+                    color: "#5b6390",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                    textAlign: "center",
+                  }}
+                >
+                  Your order will be saved securely after you complete the
+                  checkout form.
+                </p>
               </aside>
             </div>
           )}
         </main>
       </div>
-    </div>
-  );
-}
-
-function BuyerInfoForm({ buyerInfo, handleBuyerChange }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gap: "10px",
-        marginBottom: "12px",
-        padding: "14px",
-        borderRadius: "14px",
-        border: "1px solid #1c2340",
-        background: "rgba(6,8,15,0.45)",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 4px",
-          fontSize: "15px",
-          color: "#3fe3ff",
-          fontWeight: 900,
-        }}
-      >
-        Buyer Information
-      </h3>
-
-      <input
-        className="coytoy-buyer-input"
-        name="name"
-        placeholder="Full Name *"
-        value={buyerInfo.name}
-        onChange={handleBuyerChange}
-        style={inputStyle}
-      />
-
-      <input
-        className="coytoy-buyer-input"
-        name="phone"
-        placeholder="Phone Number *"
-        value={buyerInfo.phone}
-        onChange={handleBuyerChange}
-        style={inputStyle}
-        inputMode="numeric"
-        maxLength={11}
-      />
-
-      <input
-        className="coytoy-buyer-input"
-        name="email"
-        type="email"
-        placeholder="Email Address"
-        value={buyerInfo.email}
-        onChange={handleBuyerChange}
-        style={inputStyle}
-      />
-
-      <textarea
-        className="coytoy-buyer-input"
-        name="address"
-        placeholder="Delivery Address *"
-        value={buyerInfo.address}
-        onChange={handleBuyerChange}
-        rows={3}
-        style={inputStyle}
-      />
-
-      <textarea
-        className="coytoy-buyer-input"
-        name="notes"
-        placeholder="Delivery Notes"
-        value={buyerInfo.notes}
-        onChange={handleBuyerChange}
-        rows={2}
-        style={inputStyle}
-      />
     </div>
   );
 }
@@ -908,40 +708,16 @@ const quantityButtonStyle = {
   cursor: "pointer",
 };
 
-const inputStyle = {
-  width: "100%",
-  padding: "11px 12px",
-  borderRadius: "10px",
-  border: "1px solid #1c2340",
-  background: "#0c1020",
-  color: "#eef1fb",
-  fontSize: "13px",
-  fontFamily: "'Inter', system-ui, sans-serif",
-  resize: "vertical",
-};
-
 const mainButtonStyle = {
   width: "100%",
   padding: "13px",
   borderRadius: "11px",
   border: "1px solid #3fe3ff",
-  background: "rgba(63,227,255,0.12)",
+  background:
+    "linear-gradient(135deg, rgba(63,227,255,0.18), rgba(255,63,199,0.12))",
   color: "#3fe3ff",
   fontSize: "14px",
   fontWeight: 900,
   cursor: "pointer",
-};
-
-const whatsappButtonStyle = {
-  width: "100%",
-  padding: "13px",
-  borderRadius: "11px",
-  border: "1px solid #25D366",
-  background:
-    "linear-gradient(135deg, rgba(37,211,102,0.22), rgba(63,227,255,0.12))",
-  color: "#25D366",
-  fontSize: "14px",
-  fontWeight: 900,
-  cursor: "pointer",
-  boxShadow: "0 0 20px rgba(37,211,102,0.22)",
+  boxShadow: "0 0 20px rgba(63,227,255,0.18)",
 };
