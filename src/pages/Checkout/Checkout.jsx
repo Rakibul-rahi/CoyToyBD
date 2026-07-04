@@ -249,7 +249,7 @@ Please confirm delivery details.`;
                 <textarea
                   value={note}
                   maxLength={500}
-                  onChange={(e) => setNote(e.target.value)}
+                   onChange={(e) => setNote(e.target.value.slice(0, 500))}
                   placeholder="Any special instruction?"
                   className="checkout-input checkout-textarea-sm"
                 />
