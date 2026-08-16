@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../services/firebase/firebaseConfig";
 import { useCart } from "../../context/CartContext";
 import { createOrder } from "../../services/orderService";
+import { getUserProfile } from "../../services/userService";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -16,11 +19,49 @@ export default function Checkout() {
 
   const items = cartItems || [];
 
+  // Checkout is gated behind RequireCustomerAuth, so `user` should always be
+  // set here - but the hook still reports a brief loading state on refresh.
+  const [user] = useAuthState(auth);
+
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneLocked, setPhoneLocked] = useState(false);
+  const [secondaryPhone, setSecondaryPhone] = useState("");
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Prefill the name field from the signed-in account, without overwriting
+  // anything the customer has already typed.
+  useEffect(() => {
+    if (user?.displayName && !customerName) {
+      setCustomerName(user.displayName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Prefill (and lock) the phone field from the number given at signup.
+  // Accounts created before that field existed have no saved phone, so
+  // those customers still get an editable field instead of being blocked.
+  useEffect(() => {
+    let active = true;
+
+    if (!user) return undefined;
+
+    getUserProfile(user.uid)
+      .then((profile) => {
+        if (!active) return;
+        if (profile?.phone) {
+          setPhone(profile.phone);
+          setPhoneLocked(true);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const orderItems = useMemo(() => {
     return items.map((item) => ({
@@ -41,14 +82,19 @@ export default function Checkout() {
   const validateForm = () => {
     const cleanName = customerName.trim();
     const cleanPhone = phone.trim();
+    const cleanSecondaryPhone = secondaryPhone.trim();
     const cleanAddress = address.trim();
 
     if (orderItems.length === 0) return "Your cart is empty.";
     if (!cleanName) return "Please enter your name.";
     if (cleanName.length > 100) return "Name must be 100 characters or less.";
 
-    if (!/^01[0-9]{9}$/.test(cleanPhone)) {
+    if (!/^01[3-9][0-9]{8}$/.test(cleanPhone)) {
       return "Phone number must be 11 digits and start with 01.";
+    }
+
+    if (cleanSecondaryPhone && !/^01[3-9][0-9]{8}$/.test(cleanSecondaryPhone)) {
+      return "Secondary phone number must be 11 digits and start with 01.";
     }
 
     if (!cleanAddress) return "Please enter your delivery address.";
@@ -62,7 +108,10 @@ export default function Checkout() {
     return "";
   };
 
-  const openWhatsAppOrderSummary = (orderId) => {
+  // `items`/`orderTotal` are the server-verified values returned by
+  // createOrder, not the (possibly stale) client cart - so the message the
+  // admin gets on WhatsApp always matches what was actually saved.
+  const openWhatsAppOrderSummary = (orderId, items, orderTotal) => {
     const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER;
 
     if (!whatsappNumber) {
@@ -70,7 +119,7 @@ export default function Checkout() {
       return false;
     }
 
-    const productLines = orderItems
+    const productLines = items
       .map((item, index) => {
         const subtotal = Number(item.price || 0) * Number(item.quantity || 0);
 
@@ -91,6 +140,7 @@ Order ID: ${orderId}
 Customer Information:
 Name: ${customerName.trim()}
 Phone: ${phone.trim()}
+Secondary Phone: ${secondaryPhone.trim() || "None"}
 Address: ${address.trim()}
 Note: ${note.trim() || "None"}
 
@@ -98,7 +148,7 @@ Order Details:
 
 ${productLines}
 
-Total: ${total} BDT
+Total: ${orderTotal} BDT
 
 Please confirm delivery details.`;
 
@@ -106,9 +156,12 @@ Please confirm delivery details.`;
       message
     )}`;
 
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    const whatsappWindow = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
-    return true;
+    // window.open returns null (or a closed/undefined-location window) when a
+    // popup blocker steps in, which is common here since this fires after an
+    // `await` on the order transaction rather than directly inside the click.
+    return Boolean(whatsappWindow);
   };
 
   const handleSubmit = async (e) => {
@@ -124,20 +177,25 @@ Please confirm delivery details.`;
     try {
       setLoading(true);
 
-      const orderRef = await createOrder({
+      const order = await createOrder({
         customerName,
         phone,
+        secondaryPhone,
         address,
         note,
         items: orderItems,
       });
 
-      const whatsappOpened = openWhatsAppOrderSummary(orderRef.id);
+      const whatsappOpened = openWhatsAppOrderSummary(
+        order.id,
+        order.items,
+        order.total
+      );
 
       sessionStorage.setItem(
         "coytoy_last_order",
         JSON.stringify({
-          orderId: orderRef.id,
+          orderId: order.id,
           whatsappOpened,
         })
       );
@@ -148,7 +206,7 @@ Please confirm delivery details.`;
         navigate("/order-success", {
           replace: true,
           state: {
-            orderId: orderRef.id,
+            orderId: order.id,
             whatsappOpened,
           },
         });
@@ -172,6 +230,19 @@ Please confirm delivery details.`;
     if (!/^\d{0,11}$/.test(value)) return;
 
     setPhone(value);
+  };
+
+  const handleSecondaryPhoneChange = (e) => {
+    const value = e.target.value;
+
+    if (value === "") {
+      setSecondaryPhone("");
+      return;
+    }
+
+    if (!/^\d{0,11}$/.test(value)) return;
+
+    setSecondaryPhone(value);
   };
 
   return (
@@ -230,6 +301,26 @@ Please confirm delivery details.`;
                   value={phone}
                   maxLength={11}
                   onChange={handlePhoneChange}
+                  readOnly={phoneLocked}
+                  placeholder="01XXXXXXXXX"
+                  className={`checkout-input ${
+                    phoneLocked ? "checkout-input-locked" : ""
+                  }`}
+                />
+                {phoneLocked ? (
+                  <p className="checkout-field-hint">
+                    This is the number on your account and can&apos;t be
+                    changed here.
+                  </p>
+                ) : null}
+              </FormGroup>
+
+              <FormGroup label="Secondary Phone (Optional)">
+                <input
+                  type="tel"
+                  value={secondaryPhone}
+                  maxLength={11}
+                  onChange={handleSecondaryPhoneChange}
                   placeholder="01XXXXXXXXX"
                   className="checkout-input"
                 />
@@ -488,6 +579,24 @@ const checkoutStyles = `
 .checkout-input:focus {
   border-color: #3fe3ff;
   box-shadow: 0 0 0 3px rgba(63,227,255,0.08);
+}
+
+.checkout-input-locked {
+  color: #8993b8;
+  cursor: not-allowed;
+  background: #0a0d18;
+}
+
+.checkout-input-locked:focus {
+  border-color: #1c2340;
+  box-shadow: none;
+}
+
+.checkout-field-hint {
+  margin: 7px 0 0;
+  color: #5b6390;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .checkout-textarea-lg {

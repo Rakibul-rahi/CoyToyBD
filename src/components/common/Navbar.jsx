@@ -5,7 +5,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../services/firebase/firebaseConfig";
 import { useCart } from "../../context/CartContext";
 import navbarLogo from "../../assets/navbar.png";
-const ADMIN_EMAIL = "admin@coytoybd.com";
+import { ADMIN_EMAIL } from "../../constants/admin";
 
 const FONT_LINK_ID = "coytoy-cyberpunk-fonts";
 const NAV_STYLE_ID = "coytoy-navbar-styles";
@@ -168,6 +168,19 @@ function ensureNavStylesInjected() {
   background: rgba(63,227,255,0.1);
 }
 
+.coytoy-account-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8993b8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #1c2340;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
 .coytoy-logout-btn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -320,6 +333,11 @@ function ensureNavStylesInjected() {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .coytoy-account-name {
+    max-width: none;
+    text-align: center;
   }
 }
 `;
@@ -515,6 +533,36 @@ export default function Navbar() {
               </button>
             </div>
           )}
+
+          {!isAdmin &&
+            (user ? (
+              <div className="coytoy-admin-group">
+                <span
+                  className="coytoy-account-name"
+                  title={user.displayName || user.email}
+                >
+                  Hi, {user.displayName || user.email.split("@")[0]}
+                </span>
+
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="coytoy-logout-btn"
+                >
+                  {loggingOut ? "Signing out…" : "Logout"}
+                </button>
+              </div>
+            ) : (
+              <NavLink
+                to="/login"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  "coytoy-admin-link" + (isActive ? " is-active" : "")
+                }
+              >
+                Login / Sign Up
+              </NavLink>
+            ))}
         </div>
       </div>
     </nav>

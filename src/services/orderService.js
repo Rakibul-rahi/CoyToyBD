@@ -1,18 +1,18 @@
 import {
   collection,
-  addDoc,
-  getDocs,
-  getDoc,
-  updateDoc,
-  deleteDoc,
   doc,
+  getDoc,
+  getDocs,
+  deleteDoc,
+  runTransaction,
   serverTimestamp,
   query,
   orderBy,
 } from "firebase/firestore";
-import { db } from "./firebase/firebaseConfig";
+import { auth, db } from "./firebase/firebaseConfig";
 
 const ORDERS_COLLECTION = "orders";
+const PRODUCTS_COLLECTION = "products";
 
 const ORDER_STATUSES = [
   "pending",
@@ -26,64 +26,56 @@ function cleanText(value) {
   return String(value || "").trim();
 }
 
-function cleanOrderItems(items = []) {
-  return items.map((item) => ({
-    productId: String(item.productId || item.id || ""),
-    name: String(item.name || ""),
-    price: Number(item.price) || 0,
-    quantity: Number(item.quantity) || 1,
-    imageUrl: String(item.imageUrl || item.images?.[0] || item.image || ""),
-  }));
-}
-
-function calculateTotal(items = []) {
-  return items.reduce((sum, item) => {
-    return sum + Number(item.price || 0) * Number(item.quantity || 0);
-  }, 0);
-}
-
+/**
+ * Creates an order via the create-order Netlify Function, which runs under
+ * the Firebase Admin SDK instead of the browser's Firestore SDK.
+ *
+ * This used to be a client-side Firestore transaction. That worked, but it
+ * required a security rule letting any signed-in customer decrement a
+ * product's `quantity` directly - narrowly scoped (quantity only, only
+ * downward), but still a standing hole, since nothing could tie that
+ * decrement to a real order. Admin SDK writes bypass security rules
+ * entirely, so moving order creation here let firestore.rules go back to
+ * denying clients direct write access to both `orders` and `products`
+ * entirely - only this verified, server-revalidated path can create an
+ * order or touch stock now.
+ *
+ * Returns { id, items, total } using the server-verified items/total, not
+ * the client's cart snapshot - so callers can show the customer what was
+ * actually saved rather than what the (possibly stale) cart said.
+ */
 export const createOrder = async (orderData) => {
+  const user = auth.currentUser;
+
+  // Checkout is gated behind RequireCustomerAuth, so this should never fire.
+  if (!user) throw new Error("You must be signed in to place an order.");
+
   try {
-    const customerName = cleanText(orderData.customerName);
-    const phone = cleanText(orderData.phone);
-    const address = cleanText(orderData.address);
-    const note = cleanText(orderData.note);
-    const items = cleanOrderItems(orderData.items || []);
-    const total = calculateTotal(items);
+    const idToken = await user.getIdToken();
 
-    if (!customerName) {
-      throw new Error("Customer name is required.");
-    }
-
-    if (!/^01[0-9]{9}$/.test(phone)) {
-      throw new Error("Phone number must be 11 digits and start with 01.");
-    }
-
-    if (!address) {
-      throw new Error("Delivery address is required.");
-    }
-
-    if (items.length === 0) {
-      throw new Error("Cart is empty.");
-    }
-
-    if (total <= 0) {
-      throw new Error("Order total is invalid.");
-    }
-
-    const orderRef = await addDoc(collection(db, ORDERS_COLLECTION), {
-      customerName,
-      phone,
-      address,
-      note,
-      items,
-      total,
-      status: "pending",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    const response = await fetch("/.netlify/functions/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        customerName: orderData.customerName,
+        phone: orderData.phone,
+        secondaryPhone: orderData.secondaryPhone,
+        address: orderData.address,
+        note: orderData.note,
+        items: orderData.items,
+      }),
     });
 
-    return orderRef;
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(payload?.message || "Failed to place order.");
+    }
+
+    return payload;
   } catch (error) {
     console.error("Error creating order:", error);
     throw error;
@@ -111,35 +103,74 @@ export const getOrders = async () => {
 
 export const getOrderById = async (orderId) => {
   try {
-    const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-    const orderSnap = await getDoc(orderRef);
+    const orderSnap = await getDoc(doc(db, ORDERS_COLLECTION, orderId));
 
-    if (!orderSnap.exists()) {
-      return null;
-    }
+    if (!orderSnap.exists()) return null;
 
-    return {
-      id: orderSnap.id,
-      ...orderSnap.data(),
-    };
+    return { id: orderSnap.id, ...orderSnap.data() };
   } catch (error) {
     console.error("Error getting order:", error);
     throw error;
   }
 };
 
-export const updateOrderStatus = async (orderId, status, adminNote = "") => {
+/**
+ * Updates order status. Two fixes vs the old version:
+ *   1. adminNote is only written when you actually pass one, so changing status
+ *      no longer silently wipes an existing note.
+ *   2. Cancelling an order returns its stock to the products, exactly once
+ *      (guarded by the stockRestored flag).
+ */
+export const updateOrderStatus = async (orderId, status, adminNote) => {
+  if (!ORDER_STATUSES.includes(status)) {
+    throw new Error("Invalid order status.");
+  }
+
+  const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+
   try {
-    if (!ORDER_STATUSES.includes(status)) {
-      throw new Error("Invalid order status.");
-    }
+    await runTransaction(db, async (tx) => {
+      const orderSnap = await tx.get(orderRef);
 
-    const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+      if (!orderSnap.exists()) throw new Error("Order not found.");
 
-    return await updateDoc(orderRef, {
-      status,
-      adminNote: cleanText(adminNote),
-      updatedAt: serverTimestamp(),
+      const order = orderSnap.data();
+      const orderItems = Array.isArray(order.items) ? order.items : [];
+
+      const shouldRestock =
+        status === "cancelled" &&
+        order.status !== "cancelled" &&
+        order.stockRestored !== true;
+
+      const productRefs = shouldRestock
+        ? orderItems.map((item) =>
+            doc(db, PRODUCTS_COLLECTION, String(item.productId))
+          )
+        : [];
+
+      const snapshots = [];
+      for (const productRef of productRefs) {
+        snapshots.push(await tx.get(productRef));
+      }
+
+      snapshots.forEach((snapshot, index) => {
+        if (!snapshot.exists()) return; // product was deleted; nothing to restock
+
+        const current = Number(snapshot.data().quantity) || 0;
+        const returning = Number(orderItems[index].quantity) || 0;
+
+        tx.update(productRefs[index], { quantity: current + returning });
+      });
+
+      const updates = { status, updatedAt: serverTimestamp() };
+
+      if (typeof adminNote === "string") {
+        updates.adminNote = cleanText(adminNote);
+      }
+
+      if (shouldRestock) updates.stockRestored = true;
+
+      tx.update(orderRef, updates);
     });
   } catch (error) {
     console.error("Error updating order status:", error);
