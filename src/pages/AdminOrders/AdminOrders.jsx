@@ -163,6 +163,48 @@ const STATUS_COLORS = {
   cancelled: "#ff4d6d",
 };
 
+// Only used to detect "backward" moves for a warning - every transition is
+// still allowed, since admins occasionally need to correct a mistake.
+const STATUS_PIPELINE_ORDER = ["pending", "confirmed", "processing", "delivered"];
+
+/**
+ * Surfaces the real, non-obvious consequences of a status change so the
+ * admin isn't guessing. Cancelling restocks products automatically; moving
+ * an order back out of "cancelled" does NOT reverse that, since there's no
+ * way to know if the stock is still available.
+ */
+function getStatusChangeWarning(fromStatus, toStatus) {
+  if (fromStatus === toStatus) return null;
+
+  if (toStatus === "cancelled") {
+    return {
+      tone: "warning",
+      message:
+        "Cancelling returns every item in this order back to product stock automatically.",
+    };
+  }
+
+  if (fromStatus === "cancelled") {
+    return {
+      tone: "danger",
+      message:
+        "This order's stock was already returned when it was cancelled. Moving it out of Cancelled will NOT re-deduct stock automatically - check inventory before confirming.",
+    };
+  }
+
+  const fromIndex = STATUS_PIPELINE_ORDER.indexOf(fromStatus);
+  const toIndex = STATUS_PIPELINE_ORDER.indexOf(toStatus);
+
+  if (fromIndex !== -1 && toIndex !== -1 && toIndex < fromIndex) {
+    return {
+      tone: "warning",
+      message: `This moves the order backward, from "${STATUS_LABELS[fromStatus]}" to "${STATUS_LABELS[toStatus]}".`,
+    };
+  }
+
+  return null;
+}
+
 export default function AdminOrders() {
   useInjectFonts();
 
@@ -172,6 +214,27 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [notice, setNotice] = useState("");
+  const [pendingStatusChange, setPendingStatusChange] = useState(null); // { order, newStatus }
+  const [statusNoteDraft, setStatusNoteDraft] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null); // order
+
+  const statusChangeLoading =
+    !!pendingStatusChange && actionLoadingId === pendingStatusChange.order.id;
+  const deleteLoading = !!pendingDelete && actionLoadingId === pendingDelete.id;
+
+  // Let Escape dismiss whichever modal is open, but not mid-request.
+  useEffect(() => {
+    if (!pendingStatusChange && !pendingDelete) return undefined;
+
+    const handleKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      if (pendingStatusChange && !statusChangeLoading) setPendingStatusChange(null);
+      if (pendingDelete && !deleteLoading) setPendingDelete(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingStatusChange, pendingDelete, statusChangeLoading, deleteLoading]);
 
   const loadOrders = async () => {
     setPageLoading(true);
@@ -253,40 +316,37 @@ export default function AdminOrders() {
     .filter((order) => order.status !== "cancelled")
     .reduce((sum, order) => sum + Number(order.total || 0), 0);
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  // Returns whether the update actually succeeded, so callers can decide
+  // whether it's safe to dismiss their confirmation modal.
+  const handleStatusChange = async (orderId, newStatus, adminNote) => {
     const order = orders.find((item) => item.id === orderId);
 
-    if (!order) return;
-
-    if (order.status === newStatus) return;
+    if (!order) return false;
+    if (order.status === newStatus) return false;
 
     try {
       setActionLoadingId(orderId);
 
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, newStatus, adminNote);
 
       setOrders((prev) =>
         prev.map((item) =>
-          item.id === orderId ? { ...item, status: newStatus } : item
+          item.id === orderId ? { ...item, status: newStatus, adminNote } : item
         )
       );
 
       showNotice("Order status updated");
+      return true;
     } catch (error) {
       console.error("Failed to update order:", error);
       alert(error.message || "Failed to update order.");
+      return false;
     } finally {
       setActionLoadingId("");
     }
   };
 
   const handleDeleteOrder = async (orderId) => {
-    const confirmDelete = confirm(
-      "Are you sure you want to delete this order?"
-    );
-
-    if (!confirmDelete) return;
-
     try {
       setActionLoadingId(orderId);
 
@@ -295,12 +355,52 @@ export default function AdminOrders() {
       setOrders((prev) => prev.filter((order) => order.id !== orderId));
 
       showNotice("Order deleted");
+      return true;
     } catch (error) {
       console.error("Failed to delete order:", error);
       alert(error.message || "Failed to delete order.");
+      return false;
     } finally {
       setActionLoadingId("");
     }
+  };
+
+  const requestStatusChange = (order, newStatus) => {
+    if (!newStatus || newStatus === order.status) return;
+    setPendingStatusChange({ order, newStatus });
+    setStatusNoteDraft(order.adminNote || "");
+  };
+
+  const cancelStatusChange = () => {
+    if (statusChangeLoading) return;
+    setPendingStatusChange(null);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+
+    const ok = await handleStatusChange(
+      pendingStatusChange.order.id,
+      pendingStatusChange.newStatus,
+      statusNoteDraft.trim()
+    );
+
+    if (ok) setPendingStatusChange(null);
+  };
+
+  const requestDelete = (order) => setPendingDelete(order);
+
+  const cancelDelete = () => {
+    if (deleteLoading) return;
+    setPendingDelete(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    const ok = await handleDeleteOrder(pendingDelete.id);
+
+    if (ok) setPendingDelete(null);
   };
 
   return (
@@ -525,13 +625,36 @@ export default function AdminOrders() {
                 actionLoadingId={actionLoadingId}
                 formatMoney={formatMoney}
                 formatDate={formatDate}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDeleteOrder}
+                onRequestStatusChange={requestStatusChange}
+                onRequestDelete={requestDelete}
               />
             ))}
           </section>
         )}
       </main>
+
+      {pendingStatusChange && (
+        <StatusChangeModal
+          order={pendingStatusChange.order}
+          newStatus={pendingStatusChange.newStatus}
+          note={statusNoteDraft}
+          onNoteChange={setStatusNoteDraft}
+          onCancel={cancelStatusChange}
+          onConfirm={confirmStatusChange}
+          loading={statusChangeLoading}
+          formatMoney={formatMoney}
+        />
+      )}
+
+      {pendingDelete && (
+        <DeleteConfirmModal
+          order={pendingDelete}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+          loading={deleteLoading}
+          formatMoney={formatMoney}
+        />
+      )}
     </div>
   );
 }
@@ -541,12 +664,11 @@ function OrderCard({
   actionLoadingId,
   formatMoney,
   formatDate,
-  onStatusChange,
-  onDelete,
+  onRequestStatusChange,
+  onRequestDelete,
 }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const currentStatus = order.status || "pending";
-  const statusColor = STATUS_COLORS[currentStatus] || "#8993b8";
   const isLoading = actionLoadingId === order.id;
 
   return (
@@ -606,21 +728,7 @@ function OrderCard({
           </p>
         </div>
 
-        <span
-          style={{
-            padding: "7px 11px",
-            borderRadius: "999px",
-            border: `1px solid ${statusColor}`,
-            color: statusColor,
-            background: `${statusColor}14`,
-            fontSize: "12px",
-            fontWeight: 900,
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {STATUS_LABELS[currentStatus] || currentStatus}
-        </span>
+        <StatusBadge status={currentStatus} />
       </div>
 
       <div
@@ -633,8 +741,12 @@ function OrderCard({
       >
         <InfoBox label="Customer" value={order.customerName || "N/A"} />
         <InfoBox label="Phone" value={order.phone || "N/A"} />
+        {order.secondaryPhone && (
+          <InfoBox label="Secondary Phone" value={order.secondaryPhone} />
+        )}
         <InfoBox label="Address" value={order.address || "N/A"} />
         <InfoBox label="Note" value={order.note || "None"} />
+        <InfoBox label="Admin Note" value={order.adminNote || "None"} />
       </div>
 
       <div
@@ -782,7 +894,7 @@ function OrderCard({
           className="coytoy-orders-select"
           value={currentStatus}
           disabled={isLoading}
-          onChange={(e) => onStatusChange(order.id, e.target.value)}
+          onChange={(e) => onRequestStatusChange(order, e.target.value)}
           style={{
             ...selectStyle,
             minWidth: "170px",
@@ -798,7 +910,7 @@ function OrderCard({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => onDelete(order.id)}
+          onClick={() => onRequestDelete(order)}
           className="coytoy-orders-btn"
           style={deleteButtonStyle}
         >
@@ -806,6 +918,193 @@ function OrderCard({
         </button>
       </div>
     </article>
+  );
+}
+
+function StatusBadge({ status }) {
+  const color = STATUS_COLORS[status] || "#8993b8";
+
+  return (
+    <span
+      style={{
+        padding: "7px 11px",
+        borderRadius: "999px",
+        border: `1px solid ${color}`,
+        color,
+        background: `${color}14`,
+        fontSize: "12px",
+        fontWeight: 900,
+        textTransform: "uppercase",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
+function ModalOverlay({ children, onDismiss }) {
+  return (
+    <div
+      role="presentation"
+      onClick={onDismiss}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        background: "rgba(6,8,15,0.72)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={modalCardStyle}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function StatusChangeModal({
+  order,
+  newStatus,
+  note,
+  onNoteChange,
+  onCancel,
+  onConfirm,
+  loading,
+  formatMoney,
+}) {
+  const currentStatus = order.status || "pending";
+  const warning = getStatusChangeWarning(currentStatus, newStatus);
+
+  return (
+    <ModalOverlay onDismiss={loading ? undefined : onCancel}>
+      <p style={modalEyebrowStyle}>Confirm Status Change</p>
+
+      <h3 style={modalTitleStyle}>Order {order.id}</h3>
+
+      <p style={modalSubtitleStyle}>
+        {order.customerName || "N/A"} · {formatMoney(order.total)}
+      </p>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          margin: "18px 0",
+        }}
+      >
+        <StatusBadge status={currentStatus} />
+        <span style={{ color: "#5b6390" }}>→</span>
+        <StatusBadge status={newStatus} />
+      </div>
+
+      {warning && (
+        <div style={warningBoxStyle(warning.tone)}>
+          <span aria-hidden="true">
+            {warning.tone === "danger" ? "⛔" : "⚠"}
+          </span>
+          <span>{warning.message}</span>
+        </div>
+      )}
+
+      <label style={fieldLabelStyle} htmlFor="status-admin-note">
+        Admin Note (optional)
+      </label>
+      <textarea
+        id="status-admin-note"
+        value={note}
+        maxLength={500}
+        disabled={loading}
+        onChange={(e) => onNoteChange(e.target.value)}
+        placeholder="Add context for this status change..."
+        style={{
+          ...inputStyle,
+          minWidth: "100%",
+          minHeight: "80px",
+          resize: "vertical",
+          marginBottom: "22px",
+        }}
+      />
+
+      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={loading}
+          className="coytoy-orders-btn"
+          style={secondaryButtonStyle}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={loading}
+          className="coytoy-orders-btn"
+          style={confirmButtonStyle}
+        >
+          {loading ? "Updating…" : "Confirm Change"}
+        </button>
+      </div>
+    </ModalOverlay>
+  );
+}
+
+function DeleteConfirmModal({ order, onCancel, onConfirm, loading, formatMoney }) {
+  return (
+    <ModalOverlay onDismiss={loading ? undefined : onCancel}>
+      <p style={modalEyebrowStyle}>Confirm Delete</p>
+
+      <h3 style={modalTitleStyle}>Order {order.id}</h3>
+
+      <p style={modalSubtitleStyle}>
+        {order.customerName || "N/A"} · {formatMoney(order.total)}
+      </p>
+
+      <div style={{ ...warningBoxStyle("danger"), marginTop: "18px" }}>
+        <span aria-hidden="true">⛔</span>
+        <span>
+          This permanently deletes the order record and can&apos;t be undone.
+          It does <strong>not</strong> return stock - cancel the order first
+          if you need its items returned to inventory.
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          justifyContent: "flex-end",
+          marginTop: "22px",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={loading}
+          className="coytoy-orders-btn"
+          style={secondaryButtonStyle}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={loading}
+          className="coytoy-orders-btn"
+          style={deleteButtonStyle}
+        >
+          {loading ? "Deleting…" : "Delete Order"}
+        </button>
+      </div>
+    </ModalOverlay>
   );
 }
 
@@ -994,6 +1293,93 @@ const deleteButtonStyle = {
   border: "1px solid #ff4d6d",
   background: "rgba(255,77,109,0.08)",
   color: "#ff4d6d",
+  fontSize: "13px",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const modalCardStyle = {
+  width: "100%",
+  maxWidth: "460px",
+  maxHeight: "90vh",
+  overflowY: "auto",
+  borderRadius: "18px",
+  border: "1px solid #1c2340",
+  background: "rgba(15,20,38,0.97)",
+  boxShadow: "0 0 60px rgba(0,0,0,0.5)",
+  padding: "26px",
+  boxSizing: "border-box",
+};
+
+const modalEyebrowStyle = {
+  fontFamily: "'Orbitron', sans-serif",
+  color: "#3fe3ff",
+  letterSpacing: "3px",
+  fontSize: "11px",
+  fontWeight: 700,
+  margin: "0 0 10px",
+  textTransform: "uppercase",
+};
+
+const modalTitleStyle = {
+  margin: "0 0 4px",
+  fontFamily: "'Orbitron', sans-serif",
+  fontSize: "18px",
+  color: "#eef1fb",
+  wordBreak: "break-all",
+};
+
+const modalSubtitleStyle = {
+  margin: 0,
+  color: "#8993b8",
+  fontSize: "13px",
+};
+
+const fieldLabelStyle = {
+  display: "block",
+  margin: "0 0 8px",
+  color: "#8993b8",
+  fontSize: "12px",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.6px",
+};
+
+function warningBoxStyle(tone) {
+  const color = tone === "danger" ? "#ff4d6d" : "#ffb14e";
+
+  return {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "10px",
+    padding: "12px 13px",
+    borderRadius: "12px",
+    border: `1px solid ${color}55`,
+    background: `${color}14`,
+    color,
+    fontSize: "13px",
+    lineHeight: 1.5,
+    marginBottom: "18px",
+  };
+}
+
+const secondaryButtonStyle = {
+  padding: "11px 16px",
+  borderRadius: "10px",
+  border: "1px solid #1c2340",
+  background: "rgba(255,255,255,0.03)",
+  color: "#8993b8",
+  fontSize: "13px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const confirmButtonStyle = {
+  padding: "11px 18px",
+  borderRadius: "10px",
+  border: "1px solid #3fe3ff",
+  background: "rgba(63,227,255,0.14)",
+  color: "#3fe3ff",
   fontSize: "13px",
   fontWeight: 900,
   cursor: "pointer",
